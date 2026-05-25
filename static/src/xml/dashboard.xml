@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="aq_meeting_rooms.Dashboard">
+        <div class="o_aq_meeting_dashboard">
+            <section class="aq-hero">
+                <div>
+                    <p class="aq-eyebrow">Gestión corporativa</p>
+                    <h1>Salas de juntas</h1>
+                    <p class="aq-hero-copy">Consulta disponibilidad, solicita espacios, autoriza reservas y abre la sesión de minuta desde un solo panel.</p>
+                </div>
+                <div class="aq-date-control">
+                    <label>Fecha</label>
+                    <input type="date" t-att-value="state.filters.date" t-on-input="onDateChange"/>
+                </div>
+            </section>
+
+            <section class="aq-kpis">
+                <div class="aq-kpi-card">
+                    <span>Total salas</span>
+                    <strong t-esc="state.rooms.length"/>
+                </div>
+                <div class="aq-kpi-card">
+                    <span>Disponibles ahora</span>
+                    <strong t-esc="availableRoomsCount"/>
+                </div>
+                <div class="aq-kpi-card">
+                    <span>Ocupadas ahora</span>
+                    <strong t-esc="busyRoomsCount"/>
+                </div>
+                <div class="aq-kpi-card">
+                    <span>Pendientes</span>
+                    <strong t-esc="state.pendingBookings.length"/>
+                </div>
+            </section>
+
+            <t t-if="state.loading">
+                <div class="aq-loading">Cargando disponibilidad...</div>
+            </t>
+            <t t-else="">
+                <main class="aq-main-grid">
+                    <section class="aq-panel aq-room-panel">
+                        <div class="aq-panel-header">
+                            <div>
+                                <h2>Catálogo de salas</h2>
+                                <p>Selecciona una sala para ver su agenda del día.</p>
+                            </div>
+                        </div>
+
+                        <div class="aq-room-grid">
+                            <t t-if="state.rooms.length">
+                                <article t-foreach="state.rooms" t-as="room" t-key="room.id"
+                                         t-att-data-room-id="room.id"
+                                         t-on-click="selectRoomFromDataset"
+                                         t-att-class="'aq-room-card ' + (state.selectedRoomId === room.id ? 'is-active ' : '') + statusClass(room.availability_state)">
+                                    <div class="aq-room-topline">
+                                        <span class="aq-room-code" t-esc="room.code || 'Sala'"/>
+                                        <span class="aq-status-dot"/>
+                                    </div>
+                                    <h3 t-esc="room.name"/>
+                                    <p t-if="room.location" t-esc="room.location"/>
+                                    <div class="aq-room-meta">
+                                        <span><i class="fa fa-users"/> <t t-esc="room.capacity"/> personas</span>
+                                        <span><i class="fa fa-calendar"/> <t t-esc="room.today_booking_count"/> hoy</span>
+                                    </div>
+                                    <div class="aq-room-footer">
+                                        <span t-esc="room.availability_label"/>
+                                        <small t-if="room.next_booking_start">Siguiente: <t t-esc="formatDateTime(room.next_booking_start)"/></small>
+                                    </div>
+                                </article>
+                            </t>
+                            <t t-else="">
+                                <div class="aq-empty-state">No hay salas dadas de alta todavía.</div>
+                            </t>
+                        </div>
+                    </section>
+
+                    <section class="aq-side-stack">
+                        <div class="aq-panel aq-selected-room" t-if="selectedRoom">
+                            <div class="aq-panel-header">
+                                <div>
+                                    <h2 t-esc="selectedRoom.name"/>
+                                    <p t-if="selectedRoom.equipment" t-esc="selectedRoom.equipment"/>
+                                    <p t-else="">Disponibilidad y solicitud rápida.</p>
+                                </div>
+                                <span t-att-class="'aq-state-badge ' + statusClass(selectedRoom.availability_state)" t-esc="selectedRoom.availability_label"/>
+                            </div>
+
+                            <div class="aq-booking-list">
+                                <t t-if="selectedBookings.length">
+                                    <article t-foreach="selectedBookings" t-as="booking" t-key="booking.id" t-att-class="'aq-booking-row ' + bookingStateClass(booking.state)">
+                                        <div class="aq-booking-time">
+                                            <strong t-esc="formatDateTime(booking.start)"/>
+                                            <span t-esc="formatDateTime(booking.stop)"/>
+                                        </div>
+                                        <div class="aq-booking-body">
+                                            <h4 t-esc="booking.objective"/>
+                                            <p><t t-esc="booking.requested_by"/> · <t t-esc="booking.participants_count"/> participantes</p>
+                                            <span t-att-class="'aq-booking-state ' + bookingStateClass(booking.state)" t-esc="booking.state_label"/>
+                                        </div>
+                                        <div class="aq-booking-actions">
+                                            <button type="button" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
+                                            <button type="button" t-if="booking.state === 'approved'" t-att-data-booking-id="booking.id" t-on-click="openMinute">Minuta</button>
+                                        </div>
+                                    </article>
+                                </t>
+                                <t t-else="">
+                                    <div class="aq-empty-state compact">Sin reservas para la fecha seleccionada.</div>
+                                </t>
+                            </div>
+                        </div>
+
+                        <div class="aq-panel aq-request-card">
+                            <div class="aq-panel-header">
+                                <div>
+                                    <h2>Nueva solicitud</h2>
+                                    <p>Bloquea un espacio sujeto a autorización.</p>
+                                </div>
+                            </div>
+                            <div class="aq-form-grid">
+                                <label>
+                                    <span>Inicio</span>
+                                    <input type="datetime-local" t-model="state.form.start"/>
+                                </label>
+                                <label>
+                                    <span>Fin</span>
+                                    <input type="datetime-local" t-model="state.form.stop"/>
+                                </label>
+                                <label class="aq-full">
+                                    <span>Objetivo</span>
+                                    <input type="text" t-model="state.form.objective" placeholder="Ej. Revisión semanal de operaciones"/>
+                                </label>
+                                <label class="aq-full">
+                                    <span>Agenda rápida</span>
+                                    <textarea t-model="state.form.agenda" placeholder="Puntos a revisar, contexto o notas preliminares."/>
+                                </label>
+                            </div>
+                            <div class="aq-actions">
+                                <button type="button" class="aq-primary" t-on-click="createQuickRequest">Enviar solicitud rápida</button>
+                                <button type="button" class="aq-secondary" t-on-click="openFullRequestForm">Formulario completo</button>
+                            </div>
+                            <p class="aq-hint">Usa el formulario completo cuando necesites seleccionar participantes desde la solicitud.</p>
+                        </div>
+
+                        <div class="aq-panel aq-pending-card" t-if="state.pendingBookings.length">
+                            <div class="aq-panel-header">
+                                <div>
+                                    <h2 t-if="state.canApprove">Pendientes por autorizar</h2>
+                                    <h2 t-else="">Tus solicitudes pendientes</h2>
+                                    <p>Revisión rápida del flujo de autorización.</p>
+                                </div>
+                            </div>
+                            <article t-foreach="state.pendingBookings" t-as="booking" t-key="booking.id" class="aq-pending-row">
+                                <div>
+                                    <strong t-esc="booking.objective"/>
+                                    <span><t t-esc="booking.room_name"/> · <t t-esc="formatDateTime(booking.start)"/></span>
+                                </div>
+                                <div class="aq-pending-actions">
+                                    <button type="button" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
+                                    <button type="button" class="aq-approve" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="approveBooking">Autorizar</button>
+                                    <button type="button" class="aq-reject" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="rejectBooking">Rechazar</button>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+            </t>
+        </div>
+    </t>
+</templates>

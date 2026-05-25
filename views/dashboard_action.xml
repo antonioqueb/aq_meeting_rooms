@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_aq_meeting_rooms_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard de salas</field>
+        <field name="tag">aq_meeting_rooms.dashboard</field>
+    </record>
+</odoo>

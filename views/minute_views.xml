@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_aq_meeting_minute_list" model="ir.ui.view">
+        <field name="name">aq.meeting.minute.list</field>
+        <field name="model">aq.meeting.minute</field>
+        <field name="arch" type="xml">
+            <list string="Minutas" decoration-info="state == 'draft'" decoration-success="state == 'shared'">
+                <field name="name"/>
+                <field name="booking_id"/>
+                <field name="room_id"/>
+                <field name="meeting_start"/>
+                <field name="capture_by_id"/>
+                <field name="participant_partner_ids" widget="many2many_tags" optional="hide"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'confirmed'" decoration-success="state == 'shared'"/>
+                <field name="shared_date" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_minute_line_list" model="ir.ui.view">
+        <field name="name">aq.meeting.minute.line.list</field>
+        <field name="model">aq.meeting.minute.line</field>
+        <field name="arch" type="xml">
+            <list string="Estructura de minuta" editable="bottom" decoration-bf="item_type == 'section'" decoration-info="item_type == 'task'" decoration-warning="task_state == 'blocked'">
+                <field name="sequence" widget="handle"/>
+                <field name="parent_id" domain="[('minute_id', '=', minute_id)]" optional="show"/>
+                <field name="item_type"/>
+                <field name="name"/>
+                <field name="responsible_partner_id" optional="show"/>
+                <field name="due_date" optional="show"/>
+                <field name="priority" optional="hide"/>
+                <field name="task_state" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_minute_line_form" model="ir.ui.view">
+        <field name="name">aq.meeting.minute.line.form</field>
+        <field name="model">aq.meeting.minute.line</field>
+        <field name="arch" type="xml">
+            <form string="Elemento de minuta">
+                <sheet>
+                    <group>
+                        <group string="Jerarquía">
+                            <field name="minute_id" readonly="1"/>
+                            <field name="parent_id" domain="[('minute_id', '=', minute_id)]"/>
+                            <field name="sequence"/>
+                            <field name="item_type"/>
+                        </group>
+                        <group string="Seguimiento">
+                            <field name="responsible_partner_id"/>
+                            <field name="due_date"/>
+                            <field name="priority"/>
+                            <field name="task_state"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="name"/>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_minute_form" model="ir.ui.view">
+        <field name="name">aq.meeting.minute.form</field>
+        <field name="model">aq.meeting.minute</field>
+        <field name="arch" type="xml">
+            <form string="Minuta corporativa">
+                <header>
+                    <field name="line_count" invisible="1"/>
+                    <button name="action_seed_structure" type="object" string="Crear estructura base" class="btn-secondary" invisible="line_count != 0"/>
+                    <button name="action_confirm" type="object" string="Confirmar minuta" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_reset_draft" type="object" string="Regresar a borrador" class="btn-secondary" invisible="state == 'draft'"/>
+                    <button name="action_print_minute" type="object" string="Generar reporte" class="btn-secondary"/>
+                    <button name="action_share_by_email" type="object" string="Compartir con participantes" class="btn-primary" invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,shared"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Reunión">
+                            <field name="booking_id" options="{'no_create_edit': True}"/>
+                            <field name="room_id" readonly="1"/>
+                            <field name="meeting_start" readonly="1"/>
+                            <field name="meeting_stop" readonly="1"/>
+                        </group>
+                        <group string="Captura y participantes">
+                            <field name="capture_by_id"/>
+                            <field name="chair_partner_id"/>
+                            <field name="requested_by_id" readonly="1"/>
+                            <field name="participant_partner_ids" widget="many2many_tags"/>
+                            <field name="shared_date" readonly="1" invisible="not shared_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Resumen ejecutivo">
+                            <group>
+                                <field name="summary" placeholder="Resumen claro de lo que se revisó, decisiones relevantes y contexto que debe quedar documentado."/>
+                                <field name="agreements_summary" placeholder="Acuerdos generales que aplican a toda la reunión."/>
+                                <field name="risk_notes" placeholder="Riesgos, bloqueos o temas pendientes de resolución."/>
+                            </group>
+                        </page>
+                        <page string="Estructura jerárquica">
+                            <field name="line_ids" context="{'default_minute_id': id}">
+                                <list editable="bottom" decoration-bf="item_type == 'section'" decoration-info="item_type == 'task'" decoration-warning="task_state == 'blocked'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id)]" optional="show"/>
+                                    <field name="item_type"/>
+                                    <field name="name"/>
+                                    <field name="responsible_partner_id" optional="show"/>
+                                    <field name="due_date" optional="show"/>
+                                    <field name="priority" optional="hide"/>
+                                    <field name="task_state" optional="show"/>
+                                </list>
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id)]"/>
+                                                <field name="item_type"/>
+                                                <field name="sequence"/>
+                                            </group>
+                                            <group>
+                                                <field name="responsible_partner_id"/>
+                                                <field name="due_date"/>
+                                                <field name="priority"/>
+                                                <field name="task_state"/>
+                                            </group>
+                                        </group>
+                                        <group>
+                                            <field name="name"/>
+                                            <field name="description"/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_minute_search" model="ir.ui.view">
+        <field name="name">aq.meeting.minute.search</field>
+        <field name="model">aq.meeting.minute</field>
+        <field name="arch" type="xml">
+            <search string="Buscar minutas">
+                <field name="name"/>
+                <field name="booking_id"/>
+                <field name="room_id"/>
+                <field name="capture_by_id"/>
+                <field name="participant_partner_ids"/>
+                <filter name="draft" string="Borradores" domain="[('state', '=', 'draft')]"/>
+                <filter name="confirmed" string="Confirmadas" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="shared" string="Compartidas" domain="[('state', '=', 'shared')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_room" string="Sala" context="{'group_by': 'room_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_capture" string="Capturó" context="{'group_by': 'capture_by_id'}"/>
+                    <filter name="group_start_day" string="Día" context="{'group_by': 'meeting_start:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_aq_meeting_minute" model="ir.actions.act_window">
+        <field name="name">Minutas corporativas</field>
+        <field name="res_model">aq.meeting.minute</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_aq_meeting_minute_search"/>
+    </record>
+</odoo>

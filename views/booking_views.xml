@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_aq_meeting_room_booking_list" model="ir.ui.view">
+        <field name="name">aq.meeting.room.booking.list</field>
+        <field name="model">aq.meeting.room.booking</field>
+        <field name="arch" type="xml">
+            <list string="Reservas de salas" decoration-muted="state in ['cancelled', 'rejected']" decoration-success="state == 'approved'" decoration-warning="state == 'pending'">
+                <field name="name"/>
+                <field name="room_id"/>
+                <field name="objective"/>
+                <field name="requested_by_id"/>
+                <field name="start"/>
+                <field name="stop"/>
+                <field name="duration"/>
+                <field name="participant_partner_ids" widget="many2many_tags" optional="hide"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'pending'" decoration-success="state == 'approved'" decoration-muted="state in ['cancelled', 'rejected']"/>
+                <field name="approver_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_booking_calendar" model="ir.ui.view">
+        <field name="name">aq.meeting.room.booking.calendar</field>
+        <field name="model">aq.meeting.room.booking</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendario de salas" date_start="start" date_stop="stop" color="room_id" mode="week" quick_create="false">
+                <field name="name"/>
+                <field name="room_id"/>
+                <field name="objective"/>
+                <field name="requested_by_id"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_booking_form" model="ir.ui.view">
+        <field name="name">aq.meeting.room.booking.form</field>
+        <field name="model">aq.meeting.room.booking</field>
+        <field name="arch" type="xml">
+            <form string="Reserva de sala">
+                <header>
+                    <button name="action_request" type="object" string="Enviar solicitud" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Autorizar" class="btn-primary" groups="aq_meeting_rooms.group_meeting_room_approver" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="Rechazar" class="btn-secondary" groups="aq_meeting_rooms.group_meeting_room_approver" invisible="state != 'pending'"/>
+                    <button name="action_cancel" type="object" string="Cancelar" class="btn-secondary" invisible="state in ['cancelled', 'done']"/>
+                    <button name="action_open_minute" type="object" string="Abrir sesión / minuta" class="btn-primary" invisible="state not in ['approved', 'done']"/>
+                    <button name="action_done" type="object" string="Finalizar reunión" class="btn-secondary" invisible="state != 'approved'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,pending,approved,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_minutes" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="minute_count == 0">
+                            <field name="minute_count" widget="statinfo" string="Minutas"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h2><field name="objective" placeholder="Objetivo claro de la reunión"/></h2>
+                    </div>
+                    <group>
+                        <group string="Sala y horario">
+                            <field name="room_id" options="{'no_create_edit': True}"/>
+                            <field name="start"/>
+                            <field name="stop"/>
+                            <field name="duration" readonly="1"/>
+                        </group>
+                        <group string="Responsables">
+                            <field name="requested_by_id" readonly="state != 'draft'"/>
+                            <field name="approver_id" readonly="1"/>
+                            <field name="decision_date" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Participantes y agenda">
+                            <group>
+                                <field name="participant_partner_ids" widget="many2many_tags" placeholder="Selecciona participantes internos o contactos externos"/>
+                                <field name="agenda" placeholder="Puntos a tratar, información previa y contexto."/>
+                                <field name="notes"/>
+                            </group>
+                        </page>
+                        <page string="Decisión">
+                            <group>
+                                <field name="rejection_reason" placeholder="Motivo si la solicitud fue rechazada." readonly="state not in ['pending', 'rejected']"/>
+                                <field name="cancel_reason" placeholder="Motivo si la solicitud fue cancelada." readonly="state == 'done'"/>
+                            </group>
+                        </page>
+                        <page string="Minutas">
+                            <field name="minute_ids" context="{'default_booking_id': id}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="capture_by_id"/>
+                                    <field name="state"/>
+                                    <field name="shared_date"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_booking_search" model="ir.ui.view">
+        <field name="name">aq.meeting.room.booking.search</field>
+        <field name="model">aq.meeting.room.booking</field>
+        <field name="arch" type="xml">
+            <search string="Buscar reservas">
+                <field name="name"/>
+                <field name="objective"/>
+                <field name="room_id"/>
+                <field name="requested_by_id"/>
+                <field name="participant_partner_ids"/>
+                <filter name="pending" string="Pendientes" domain="[('state', '=', 'pending')]"/>
+                <filter name="approved" string="Autorizadas" domain="[('state', '=', 'approved')]"/>
+                <filter name="mine" string="Mis solicitudes" domain="[('requested_by_id', '=', uid)]"/>
+                <filter name="today" string="Hoy" domain="[('start', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')), ('start', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_room" string="Sala" context="{'group_by': 'room_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_requested_by" string="Solicitante" context="{'group_by': 'requested_by_id'}"/>
+                    <filter name="group_start_day" string="Día" context="{'group_by': 'start:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_aq_meeting_room_booking" model="ir.actions.act_window">
+        <field name="name">Solicitudes de salas</field>
+        <field name="res_model">aq.meeting.room.booking</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="search_view_id" ref="view_aq_meeting_room_booking_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+    <record id="action_aq_meeting_room_booking_pending" model="ir.actions.act_window">
+        <field name="name">Solicitudes pendientes</field>
+        <field name="res_model">aq.meeting.room.booking</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="domain">[('state', '=', 'pending')]</field>
+        <field name="search_view_id" ref="view_aq_meeting_room_booking_search"/>
+        <field name="context">{'search_default_pending': 1}</field>
+    </record>
+</odoo>

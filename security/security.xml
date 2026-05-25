@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="module_category_aq_meeting_rooms" model="ir.module.category">
+        <field name="name">Salas de juntas</field>
+        <field name="description">Reservas, autorizaciones y minutas corporativas</field>
+        <field name="sequence">45</field>
+    </record>
+
+    <record id="group_meeting_room_applicant" model="res.groups">
+        <field name="name">Solicitante</field>
+        <field name="category_id" ref="module_category_aq_meeting_rooms"/>
+        <field name="comment">Puede consultar disponibilidad, crear solicitudes y capturar minutas de sus reuniones.</field>
+    </record>
+
+    <record id="group_meeting_room_approver" model="res.groups">
+        <field name="name">Autorizador</field>
+        <field name="category_id" ref="module_category_aq_meeting_rooms"/>
+        <field name="implied_ids" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="comment">Puede autorizar, rechazar y gestionar solicitudes de salas.</field>
+    </record>
+
+    <record id="group_meeting_room_manager" model="res.groups">
+        <field name="name">Administrador general</field>
+        <field name="category_id" ref="module_category_aq_meeting_rooms"/>
+        <field name="implied_ids" eval="[(4, ref('group_meeting_room_approver'))]"/>
+        <field name="comment">Puede administrar salas, solicitudes, minutas y configuración del módulo.</field>
+    </record>
+
+    <!-- Reservas: lectura amplia para que los usuarios puedan ver disponibilidad real. -->
+    <record id="rule_booking_applicant_read_all" model="ir.rule">
+        <field name="name">Reservas - lectura de disponibilidad</field>
+        <field name="model_id" ref="model_aq_meeting_room_booking"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_booking_applicant_create" model="ir.rule">
+        <field name="name">Reservas - crear solicitudes</field>
+        <field name="model_id" ref="model_aq_meeting_room_booking"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_booking_applicant_write_own_open" model="ir.rule">
+        <field name="name">Reservas - editar propias activas</field>
+        <field name="model_id" ref="model_aq_meeting_room_booking"/>
+        <field name="domain_force">[('requested_by_id', '=', user.id), ('state', 'in', ['draft', 'pending', 'approved'])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_booking_approver_write_all" model="ir.rule">
+        <field name="name">Reservas - autorizadores gestionan todas</field>
+        <field name="model_id" ref="model_aq_meeting_room_booking"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_approver'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_booking_manager_all" model="ir.rule">
+        <field name="name">Reservas - administrador general</field>
+        <field name="model_id" ref="model_aq_meeting_room_booking"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Minutas: los participantes y solicitantes pueden consultarlas; la captura queda controlada por estado. -->
+    <record id="rule_minute_applicant_read_related" model="ir.rule">
+        <field name="name">Minutas - lectura relacionada</field>
+        <field name="model_id" ref="model_aq_meeting_minute"/>
+        <field name="domain_force">['|', '|', ('capture_by_id', '=', user.id), ('booking_id.requested_by_id', '=', user.id), ('participant_partner_ids', 'in', [user.partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_minute_applicant_create" model="ir.rule">
+        <field name="name">Minutas - crear</field>
+        <field name="model_id" ref="model_aq_meeting_minute"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_minute_applicant_write_draft" model="ir.rule">
+        <field name="name">Minutas - editar borradores relacionados</field>
+        <field name="model_id" ref="model_aq_meeting_minute"/>
+        <field name="domain_force">['&amp;', ('state', '=', 'draft'), '|', '|', ('capture_by_id', '=', user.id), ('booking_id.requested_by_id', '=', user.id), ('participant_partner_ids', 'in', [user.partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_minute_approver_all" model="ir.rule">
+        <field name="name">Minutas - autorizadores</field>
+        <field name="model_id" ref="model_aq_meeting_minute"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_approver'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_minute_manager_all" model="ir.rule">
+        <field name="name">Minutas - administrador general</field>
+        <field name="model_id" ref="model_aq_meeting_minute"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_minute_line_related" model="ir.rule">
+        <field name="name">Líneas de minuta - relacionadas</field>
+        <field name="model_id" ref="model_aq_meeting_minute_line"/>
+        <field name="domain_force">['|', '|', ('minute_id.capture_by_id', '=', user.id), ('minute_id.booking_id.requested_by_id', '=', user.id), ('minute_id.participant_partner_ids', 'in', [user.partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_applicant'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_minute_line_approver_all" model="ir.rule">
+        <field name="name">Líneas de minuta - autorizadores</field>
+        <field name="model_id" ref="model_aq_meeting_minute_line"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_room_approver'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>

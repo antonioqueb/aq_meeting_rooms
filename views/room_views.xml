@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_aq_meeting_room_list" model="ir.ui.view">
+        <field name="name">aq.meeting.room.list</field>
+        <field name="model">aq.meeting.room</field>
+        <field name="arch" type="xml">
+            <list string="Salas de juntas" decoration-success="availability_state == 'free'" decoration-warning="availability_state == 'soon'" decoration-danger="availability_state == 'busy'">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="capacity"/>
+                <field name="location"/>
+                <field name="responsible_id"/>
+                <field name="availability_state"/>
+                <field name="today_booking_count"/>
+                <field name="pending_booking_count"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_kanban" model="ir.ui.view">
+        <field name="name">aq.meeting.room.kanban</field>
+        <field name="model">aq.meeting.room</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="capacity"/>
+                <field name="location"/>
+                <field name="availability_state"/>
+                <field name="today_booking_count"/>
+                <field name="image_1920"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_record_has_image_fill o_kanban_card">
+                            <div class="o_kanban_image_fill_left" t-if="record.image_1920.raw_value">
+                                <field name="image_1920" widget="image" class="o_kanban_image"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                <div class="text-muted" t-if="record.location.raw_value"><field name="location"/></div>
+                                <div class="mt-2 d-flex gap-2 flex-wrap">
+                                    <span class="badge rounded-pill text-bg-light">Capacidad: <field name="capacity"/></span>
+                                    <span class="badge rounded-pill text-bg-light">Hoy: <field name="today_booking_count"/></span>
+                                </div>
+                                <div class="mt-2">
+                                    <field name="availability_state" widget="badge" decoration-success="availability_state == 'free'" decoration-warning="availability_state == 'soon'" decoration-danger="availability_state == 'busy'"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_form" model="ir.ui.view">
+        <field name="name">aq.meeting.room.form</field>
+        <field name="model">aq.meeting.room</field>
+        <field name="arch" type="xml">
+            <form string="Sala de juntas">
+                <header>
+                    <button name="action_open_bookings" type="object" string="Ver reservas" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_bookings" type="object" class="oe_stat_button" icon="fa-calendar">
+                            <field name="today_booking_count" widget="statinfo" string="Reservas hoy"/>
+                        </button>
+                    </div>
+                    <field name="image_1920" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Sala de juntas principal"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identificación">
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Operación">
+                            <field name="capacity"/>
+                            <field name="location"/>
+                            <field name="responsible_id"/>
+                            <field name="availability_state" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Descripción y equipo">
+                            <group>
+                                <field name="equipment" placeholder="Pantalla, cámara, micrófono, pizarrón, capacidad híbrida..."/>
+                                <field name="description" placeholder="Describe el uso recomendado y políticas particulares de la sala."/>
+                            </group>
+                        </page>
+                        <page string="Reservas">
+                            <field name="booking_ids" context="{'default_room_id': id}">
+                                <list editable="bottom">
+                                    <field name="name" readonly="1"/>
+                                    <field name="objective"/>
+                                    <field name="requested_by_id"/>
+                                    <field name="start"/>
+                                    <field name="stop"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_aq_meeting_room_search" model="ir.ui.view">
+        <field name="name">aq.meeting.room.search</field>
+        <field name="model">aq.meeting.room</field>
+        <field name="arch" type="xml">
+            <search string="Buscar salas">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="location"/>
+                <field name="responsible_id"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_responsible" string="Responsable" context="{'group_by': 'responsible_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_aq_meeting_room" model="ir.actions.act_window">
+        <field name="name">Salas de juntas</field>
+        <field name="res_model">aq.meeting.room</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_aq_meeting_room_search"/>
+    </record>
+</odoo>

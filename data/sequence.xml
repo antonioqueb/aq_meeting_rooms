@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <record id="seq_aq_meeting_room_booking" model="ir.sequence">
+        <field name="name">Reserva de sala</field>
+        <field name="code">aq.meeting.room.booking</field>
+        <field name="prefix">SJR/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_aq_meeting_minute" model="ir.sequence">
+        <field name="name">Minuta corporativa</field>
+        <field name="code">aq.meeting.minute</field>
+        <field name="prefix">MIN/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

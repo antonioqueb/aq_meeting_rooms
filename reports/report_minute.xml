@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_report_meeting_minute" model="ir.actions.report">
+        <field name="name">Minuta de reunión</field>
+        <field name="model">aq.meeting.minute</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aq_meeting_rooms.report_meeting_minute_document</field>
+        <field name="report_file">aq_meeting_rooms.report_meeting_minute_document</field>
+        <field name="print_report_name">'Minuta - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_aq_meeting_minute"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_meeting_minute_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <style>
+                            .aq-minute-title { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+                            .aq-minute-subtitle { color: #555; font-size: 12px; margin-bottom: 18px; }
+                            .aq-box { border: 1px solid #d9d9d9; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+                            .aq-label { color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+                            .aq-value { font-size: 13px; font-weight: 600; }
+                            .aq-section-title { font-size: 15px; font-weight: 800; margin: 18px 0 8px 0; }
+                            .aq-table { width: 100%; border-collapse: collapse; }
+                            .aq-table th { background: #111; color: #fff; padding: 8px; font-size: 11px; }
+                            .aq-table td { border-bottom: 1px solid #e5e5e5; padding: 7px; font-size: 11px; vertical-align: top; }
+                            .aq-pill { display: inline-block; padding: 2px 7px; border-radius: 999px; border: 1px solid #ccc; font-size: 10px; }
+                        </style>
+
+                        <div class="aq-minute-title">Minuta de reunión</div>
+                        <div class="aq-minute-subtitle">
+                            <span t-field="doc.name"/> · <span t-field="doc.state"/>
+                        </div>
+
+                        <div class="row aq-box">
+                            <div class="col-6">
+                                <div class="aq-label">Objetivo</div>
+                                <div class="aq-value"><span t-field="doc.booking_id.objective"/></div>
+                            </div>
+                            <div class="col-3">
+                                <div class="aq-label">Sala</div>
+                                <div class="aq-value"><span t-field="doc.room_id"/></div>
+                            </div>
+                            <div class="col-3">
+                                <div class="aq-label">Solicitante</div>
+                                <div class="aq-value"><span t-field="doc.requested_by_id"/></div>
+                            </div>
+                        </div>
+
+                        <div class="row aq-box">
+                            <div class="col-3">
+                                <div class="aq-label">Inicio</div>
+                                <div class="aq-value"><span t-field="doc.meeting_start"/></div>
+                            </div>
+                            <div class="col-3">
+                                <div class="aq-label">Fin</div>
+                                <div class="aq-value"><span t-field="doc.meeting_stop"/></div>
+                            </div>
+                            <div class="col-3">
+                                <div class="aq-label">Capturó</div>
+                                <div class="aq-value"><span t-field="doc.capture_by_id"/></div>
+                            </div>
+                            <div class="col-3">
+                                <div class="aq-label">Líder</div>
+                                <div class="aq-value"><span t-field="doc.chair_partner_id"/></div>
+                            </div>
+                        </div>
+
+                        <div class="aq-section-title">Participantes</div>
+                        <div class="aq-box">
+                            <t t-if="doc.participant_partner_ids">
+                                <t t-foreach="doc.participant_partner_ids" t-as="partner">
+                                    <span class="aq-pill"><span t-field="partner.display_name"/></span>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <span class="text-muted">Sin participantes capturados.</span>
+                            </t>
+                        </div>
+
+                        <t t-if="doc.summary">
+                            <div class="aq-section-title">Resumen ejecutivo</div>
+                            <div class="aq-box"><span t-field="doc.summary"/></div>
+                        </t>
+
+                        <t t-if="doc.agreements_summary">
+                            <div class="aq-section-title">Acuerdos generales</div>
+                            <div class="aq-box"><span t-field="doc.agreements_summary"/></div>
+                        </t>
+
+                        <t t-if="doc.risk_notes">
+                            <div class="aq-section-title">Riesgos / bloqueos</div>
+                            <div class="aq-box"><span t-field="doc.risk_notes"/></div>
+                        </t>
+
+                        <div class="aq-section-title">Detalle de minuta</div>
+                        <table class="aq-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 14%;">Tipo</th>
+                                    <th style="width: 34%;">Punto</th>
+                                    <th style="width: 20%;">Detalle</th>
+                                    <th style="width: 16%;">Responsable</th>
+                                    <th style="width: 8%;">Fecha</th>
+                                    <th style="width: 8%;">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="doc.line_ids">
+                                    <tr t-foreach="doc.get_report_line_ids()" t-as="line">
+                                        <td><span t-field="line.item_type"/></td>
+                                        <td>
+                                            <div t-attf-style="margin-left: #{line.depth * 16}px;">
+                                                <strong t-if="line.item_type == 'section'"><span t-field="line.name"/></strong>
+                                                <span t-else="" t-field="line.name"/>
+                                            </div>
+                                        </td>
+                                        <td><span t-field="line.description"/></td>
+                                        <td><span t-field="line.responsible_partner_id"/></td>
+                                        <td><span t-field="line.due_date"/></td>
+                                        <td><span t-field="line.task_state"/></td>
+                                    </tr>
+                                </t>
+                                <t t-else="">
+                                    <tr>
+                                        <td colspan="6" class="text-muted">Sin líneas capturadas.</td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

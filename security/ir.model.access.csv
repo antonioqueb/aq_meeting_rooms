@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_aq_meeting_room_applicant,aq.meeting.room applicant,model_aq_meeting_room,group_meeting_room_applicant,1,0,0,0
+access_aq_meeting_room_approver,aq.meeting.room approver,model_aq_meeting_room,group_meeting_room_approver,1,0,0,0
+access_aq_meeting_room_manager,aq.meeting.room manager,model_aq_meeting_room,group_meeting_room_manager,1,1,1,1
+access_aq_meeting_room_booking_applicant,aq.meeting.room.booking applicant,model_aq_meeting_room_booking,group_meeting_room_applicant,1,1,1,1
+access_aq_meeting_room_booking_approver,aq.meeting.room.booking approver,model_aq_meeting_room_booking,group_meeting_room_approver,1,1,1,0
+access_aq_meeting_room_booking_manager,aq.meeting.room.booking manager,model_aq_meeting_room_booking,group_meeting_room_manager,1,1,1,1
+access_aq_meeting_minute_applicant,aq.meeting.minute applicant,model_aq_meeting_minute,group_meeting_room_applicant,1,1,1,0
+access_aq_meeting_minute_approver,aq.meeting.minute approver,model_aq_meeting_minute,group_meeting_room_approver,1,1,1,0
+access_aq_meeting_minute_manager,aq.meeting.minute manager,model_aq_meeting_minute,group_meeting_room_manager,1,1,1,1
+access_aq_meeting_minute_line_applicant,aq.meeting.minute.line applicant,model_aq_meeting_minute_line,group_meeting_room_applicant,1,1,1,1
+access_aq_meeting_minute_line_approver,aq.meeting.minute.line approver,model_aq_meeting_minute_line,group_meeting_room_approver,1,1,1,1
+access_aq_meeting_minute_line_manager,aq.meeting.minute.line manager,model_aq_meeting_minute_line,group_meeting_room_manager,1,1,1,1

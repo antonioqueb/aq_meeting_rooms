@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <menuitem id="menu_aq_meeting_rooms_root"
+              name="Salas de juntas"
+              sequence="35"
+              web_icon="aq_meeting_rooms,static/description/icon.png"
+              groups="aq_meeting_rooms.group_meeting_room_applicant"/>
+
+    <menuitem id="menu_aq_meeting_rooms_dashboard"
+              name="Dashboard"
+              parent="menu_aq_meeting_rooms_root"
+              action="action_aq_meeting_rooms_dashboard"
+              sequence="10"
+              groups="aq_meeting_rooms.group_meeting_room_applicant"/>
+
+    <menuitem id="menu_aq_meeting_room_booking"
+              name="Solicitudes y calendario"
+              parent="menu_aq_meeting_rooms_root"
+              action="action_aq_meeting_room_booking"
+              sequence="20"
+              groups="aq_meeting_rooms.group_meeting_room_applicant"/>
+
+    <menuitem id="menu_aq_meeting_room_booking_pending"
+              name="Pendientes por autorizar"
+              parent="menu_aq_meeting_rooms_root"
+              action="action_aq_meeting_room_booking_pending"
+              sequence="30"
+              groups="aq_meeting_rooms.group_meeting_room_approver"/>
+
+    <menuitem id="menu_aq_meeting_minute"
+              name="Minutas"
+              parent="menu_aq_meeting_rooms_root"
+              action="action_aq_meeting_minute"
+              sequence="40"
+              groups="aq_meeting_rooms.group_meeting_room_applicant"/>
+
+    <menuitem id="menu_aq_meeting_rooms_config_root"
+              name="Configuración"
+              parent="menu_aq_meeting_rooms_root"
+              sequence="90"
+              groups="aq_meeting_rooms.group_meeting_room_manager"/>
+
+    <menuitem id="menu_aq_meeting_room_config"
+              name="Catálogo de salas"
+              parent="menu_aq_meeting_rooms_config_root"
+              action="action_aq_meeting_room"
+              sequence="10"
+              groups="aq_meeting_rooms.group_meeting_room_manager"/>
+</odoo>
