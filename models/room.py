@@ -41,8 +41,9 @@ class AqMeetingRoom(models.Model):
     def _compute_booking_metrics(self):
         Booking = self.env['aq.meeting.room.booking']
         now = fields.Datetime.now()
-        today_start = datetime.combine(fields.Date.context_today(self), time.min)
-        today_stop = datetime.combine(fields.Date.context_today(self), time.max)
+        today = fields.Date.context_today(self)
+        today_start = datetime.combine(today, time.min)
+        today_stop = datetime.combine(today, time.max)
         soon_limit = fields.Datetime.add(now, hours=1)
 
         for room in self:
@@ -98,31 +99,47 @@ class AqMeetingRoom(models.Model):
         request valid meeting slots without needing full administrative permissions.
         """
         Booking = self.env['aq.meeting.room.booking']
-        date_from_dt = fields.Datetime.to_datetime(date_from) if date_from else fields.Datetime.now().replace(hour=0, minute=0, second=0)
-        date_to_dt = fields.Datetime.to_datetime(date_to) if date_to else fields.Datetime.add(date_from_dt, days=1)
+        if date_from:
+            date_from_dt = fields.Datetime.to_datetime(date_from)
+        else:
+            today = fields.Date.context_today(self)
+            date_from_dt = datetime.combine(today, time.min)
+
+        if date_to:
+            date_to_dt = fields.Datetime.to_datetime(date_to)
+        else:
+            date_to_dt = fields.Datetime.add(date_from_dt, days=1)
 
         rooms = self.search([('active', '=', True)], order='sequence, name')
         booking_domain = [
             ('room_id', 'in', rooms.ids),
-            ('state', 'in', ['pending', 'approved']),
+            ('state', 'in', ['pending', 'approved', 'done']),
             ('start', '<', date_to_dt),
             ('stop', '>', date_from_dt),
         ]
-        bookings = Booking.search(booking_domain, order='start asc')
+        bookings = Booking.search(booking_domain, order='start asc, room_id asc')
 
         can_approve = self.env.user.has_group('aq_meeting_rooms.group_meeting_room_approver')
         pending_domain = [('state', '=', 'pending')]
         if not can_approve:
             pending_domain.append(('requested_by_id', '=', self.env.user.id))
-        pending_bookings = Booking.search(pending_domain, order='start asc', limit=25)
+        pending_bookings = Booking.search(pending_domain, order='start asc', limit=30)
+
+        my_open_bookings = Booking.search([
+            ('requested_by_id', '=', self.env.user.id),
+            ('state', 'in', ['draft', 'pending', 'approved']),
+            ('stop', '>=', date_from_dt),
+        ], order='start asc', limit=12)
 
         return {
             'can_approve': can_approve,
             'rooms': [room._dashboard_room_payload() for room in rooms],
             'bookings': [booking._dashboard_booking_payload() for booking in bookings],
             'pending_bookings': [booking._dashboard_booking_payload() for booking in pending_bookings],
+            'my_open_bookings': [booking._dashboard_booking_payload() for booking in my_open_bookings],
             'date_from': fields.Datetime.to_string(date_from_dt),
             'date_to': fields.Datetime.to_string(date_to_dt),
+            'server_now': fields.Datetime.to_string(fields.Datetime.now()),
         }
 
     def _dashboard_room_payload(self):
@@ -134,11 +151,16 @@ class AqMeetingRoom(models.Model):
             'capacity': self.capacity or 0,
             'location': self.location or '',
             'equipment': self.equipment or '',
+            'responsible': self.responsible_id.display_name if self.responsible_id else '',
             'availability_state': self.availability_state,
             'availability_label': dict(self._fields['availability_state'].selection).get(self.availability_state),
             'today_booking_count': self.today_booking_count,
             'pending_booking_count': self.pending_booking_count,
             'current_booking_name': self.current_booking_id.name if self.current_booking_id else '',
+            'current_booking_objective': self.current_booking_id.objective if self.current_booking_id else '',
+            'next_booking_name': self.next_booking_id.name if self.next_booking_id else '',
+            'next_booking_objective': self.next_booking_id.objective if self.next_booking_id else '',
             'next_booking_start': fields.Datetime.to_string(self.next_booking_id.start) if self.next_booking_id else '',
+            'next_booking_stop': fields.Datetime.to_string(self.next_booking_id.stop) if self.next_booking_id else '',
             'image_url': '/web/image/aq.meeting.room/%s/image_1920' % self.id if self.image_1920 else '',
         }

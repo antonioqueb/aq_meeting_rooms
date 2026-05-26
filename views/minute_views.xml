@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list string="Minutas" decoration-info="state == 'draft'" decoration-success="state == 'shared'">
                 <field name="name"/>
+                <field name="objective"/>
                 <field name="booking_id"/>
                 <field name="room_id"/>
                 <field name="meeting_start"/>
@@ -30,6 +31,7 @@
                 <field name="due_date" optional="show"/>
                 <field name="priority" optional="hide"/>
                 <field name="task_state" optional="show"/>
+                <field name="description" optional="hide"/>
             </list>
         </field>
     </record>
@@ -41,22 +43,22 @@
             <form string="Elemento de minuta">
                 <sheet>
                     <group>
-                        <group string="Jerarquía">
+                        <group string="Clasificación">
                             <field name="minute_id" readonly="1"/>
                             <field name="parent_id" domain="[('minute_id', '=', minute_id)]"/>
                             <field name="sequence"/>
                             <field name="item_type"/>
                         </group>
-                        <group string="Seguimiento">
+                        <group string="Seguimiento" invisible="item_type == 'section'">
                             <field name="responsible_partner_id"/>
                             <field name="due_date"/>
                             <field name="priority"/>
-                            <field name="task_state"/>
+                            <field name="task_state" invisible="item_type != 'task'"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="name"/>
-                        <field name="description"/>
+                    <group string="Contenido">
+                        <field name="name" placeholder="Título claro del punto, acuerdo, decisión o tarea"/>
+                        <field name="description" placeholder="Detalle suficiente para entender el contexto, conclusión y seguimiento."/>
                     </group>
                 </sheet>
             </form>
@@ -81,31 +83,218 @@
                     <div class="oe_title">
                         <label for="name"/>
                         <h1><field name="name" readonly="1"/></h1>
+                        <label for="objective"/>
+                        <h2><field name="objective" readonly="1" placeholder="Objetivo de la reunión"/></h2>
                     </div>
+
+                    <div class="alert alert-info" role="alert">
+                        Captura la minuta por secciones: primero resumen, después puntos tratados, acuerdos, decisiones, tareas y riesgos. La pestaña “Estructura completa” queda para ajustes jerárquicos avanzados.
+                    </div>
+
                     <group>
-                        <group string="Reunión">
+                        <group string="Datos de la reunión">
                             <field name="booking_id" options="{'no_create_edit': True}"/>
                             <field name="room_id" readonly="1"/>
                             <field name="meeting_start" readonly="1"/>
                             <field name="meeting_stop" readonly="1"/>
+                            <field name="requested_by_id" readonly="1"/>
                         </group>
-                        <group string="Captura y participantes">
+                        <group string="Responsables y participantes">
                             <field name="capture_by_id"/>
                             <field name="chair_partner_id"/>
-                            <field name="requested_by_id" readonly="1"/>
-                            <field name="participant_partner_ids" widget="many2many_tags"/>
+                            <field name="participant_partner_ids" widget="many2many_tags" placeholder="Personas que participaron o deben recibir seguimiento"/>
                             <field name="shared_date" readonly="1" invisible="not shared_date"/>
                         </group>
                     </group>
+
                     <notebook>
-                        <page string="Resumen ejecutivo">
+                        <page string="1. Resumen">
                             <group>
-                                <field name="summary" placeholder="Resumen claro de lo que se revisó, decisiones relevantes y contexto que debe quedar documentado."/>
+                                <field name="summary" placeholder="Qué se revisó, por qué era importante y cuál fue la conclusión general."/>
                                 <field name="agreements_summary" placeholder="Acuerdos generales que aplican a toda la reunión."/>
                                 <field name="risk_notes" placeholder="Riesgos, bloqueos o temas pendientes de resolución."/>
                             </group>
                         </page>
-                        <page string="Estructura jerárquica">
+
+                        <page string="2. Puntos tratados">
+                            <field name="note_line_ids" context="{'default_minute_id': id, 'default_item_type': 'note'}">
+                                <list editable="bottom" decoration-muted="item_type == 'section'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
+                                    <field name="name" string="Punto tratado"/>
+                                    <field name="responsible_partner_id" optional="show"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                                <form string="Punto tratado">
+                                    <sheet>
+                                        <group>
+                                            <group string="Ubicación">
+                                                <field name="item_type" readonly="1"/>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
+                                                <field name="sequence"/>
+                                            </group>
+                                            <group string="Referencia">
+                                                <field name="responsible_partner_id"/>
+                                            </group>
+                                        </group>
+                                        <group string="Contenido">
+                                            <field name="name" placeholder="Tema o punto revisado"/>
+                                            <field name="description" placeholder="Contexto, datos revisados y conclusión del punto."/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="3. Acuerdos y decisiones">
+                            <separator string="Acuerdos"/>
+                            <field name="agreement_line_ids" context="{'default_minute_id': id, 'default_item_type': 'agreement'}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
+                                    <field name="name" string="Acuerdo"/>
+                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
+                                    <field name="due_date" string="Fecha compromiso" optional="show"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                                <form string="Acuerdo">
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="item_type" readonly="1"/>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
+                                                <field name="sequence"/>
+                                            </group>
+                                            <group>
+                                                <field name="responsible_partner_id"/>
+                                                <field name="due_date"/>
+                                                <field name="priority"/>
+                                            </group>
+                                        </group>
+                                        <group string="Contenido">
+                                            <field name="name" placeholder="Acuerdo claro y verificable"/>
+                                            <field name="description" placeholder="Detalle del acuerdo, alcance y condición de cumplimiento."/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+
+                            <separator string="Decisiones"/>
+                            <field name="decision_line_ids" context="{'default_minute_id': id, 'default_item_type': 'decision'}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
+                                    <field name="name" string="Decisión"/>
+                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                                <form string="Decisión">
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="item_type" readonly="1"/>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
+                                                <field name="sequence"/>
+                                            </group>
+                                            <group>
+                                                <field name="responsible_partner_id"/>
+                                                <field name="priority"/>
+                                            </group>
+                                        </group>
+                                        <group string="Contenido">
+                                            <field name="name" placeholder="Decisión tomada"/>
+                                            <field name="description" placeholder="Criterio, impacto y alcance de la decisión."/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="4. Tareas">
+                            <field name="task_line_ids" context="{'default_minute_id': id, 'default_item_type': 'task', 'default_task_state': 'todo'}">
+                                <list editable="bottom" decoration-success="task_state == 'done'" decoration-warning="task_state == 'blocked'" decoration-info="task_state == 'in_progress'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
+                                    <field name="name" string="Tarea / acción"/>
+                                    <field name="responsible_partner_id"/>
+                                    <field name="due_date"/>
+                                    <field name="priority"/>
+                                    <field name="task_state"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                                <form string="Tarea de seguimiento">
+                                    <sheet>
+                                        <group>
+                                            <group string="Acción">
+                                                <field name="item_type" readonly="1"/>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
+                                                <field name="sequence"/>
+                                                <field name="name" placeholder="Acción concreta a ejecutar"/>
+                                            </group>
+                                            <group string="Seguimiento">
+                                                <field name="responsible_partner_id"/>
+                                                <field name="due_date"/>
+                                                <field name="priority"/>
+                                                <field name="task_state"/>
+                                            </group>
+                                        </group>
+                                        <group string="Detalle">
+                                            <field name="description" placeholder="Resultado esperado, evidencia de cierre y dependencias."/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="5. Riesgos">
+                            <field name="risk_line_ids" context="{'default_minute_id': id, 'default_item_type': 'risk'}">
+                                <list editable="bottom" decoration-warning="priority in ['2', '3']">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
+                                    <field name="name" string="Riesgo / bloqueo"/>
+                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
+                                    <field name="priority"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                                <form string="Riesgo o bloqueo">
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="item_type" readonly="1"/>
+                                                <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
+                                                <field name="sequence"/>
+                                                <field name="name" placeholder="Riesgo o bloqueo detectado"/>
+                                            </group>
+                                            <group>
+                                                <field name="responsible_partner_id"/>
+                                                <field name="priority"/>
+                                            </group>
+                                        </group>
+                                        <group string="Detalle">
+                                            <field name="description" placeholder="Impacto, mitigación y siguiente paso recomendado."/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="Estructura completa">
+                            <group>
+                                <field name="section_line_ids" context="{'default_minute_id': id, 'default_item_type': 'section'}">
+                                    <list editable="bottom" decoration-bf="1">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="item_type" invisible="1"/>
+                                        <field name="name" string="Sección"/>
+                                        <field name="description" optional="hide"/>
+                                    </list>
+                                </field>
+                            </group>
+                            <separator string="Todos los elementos"/>
                             <field name="line_ids" context="{'default_minute_id': id}">
                                 <list editable="bottom" decoration-bf="item_type == 'section'" decoration-info="item_type == 'task'" decoration-warning="task_state == 'blocked'">
                                     <field name="sequence" widget="handle"/>
@@ -116,23 +305,24 @@
                                     <field name="due_date" optional="show"/>
                                     <field name="priority" optional="hide"/>
                                     <field name="task_state" optional="show"/>
+                                    <field name="description" optional="hide"/>
                                 </list>
                                 <form>
                                     <sheet>
                                         <group>
-                                            <group>
+                                            <group string="Jerarquía">
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id)]"/>
                                                 <field name="item_type"/>
                                                 <field name="sequence"/>
                                             </group>
-                                            <group>
+                                            <group string="Seguimiento">
                                                 <field name="responsible_partner_id"/>
                                                 <field name="due_date"/>
                                                 <field name="priority"/>
-                                                <field name="task_state"/>
+                                                <field name="task_state" invisible="item_type != 'task'"/>
                                             </group>
                                         </group>
-                                        <group>
+                                        <group string="Contenido">
                                             <field name="name"/>
                                             <field name="description"/>
                                         </group>
@@ -153,6 +343,7 @@
         <field name="arch" type="xml">
             <search string="Buscar minutas">
                 <field name="name"/>
+                <field name="objective"/>
                 <field name="booking_id"/>
                 <field name="room_id"/>
                 <field name="capture_by_id"/>

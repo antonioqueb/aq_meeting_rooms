@@ -1,32 +1,21 @@
 .o_aq_meeting_dashboard {
-    min-height: 100%;
-    padding: 24px;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 22px;
     background:
-        radial-gradient(circle at 12% 8%, rgba(0, 0, 0, 0.05), transparent 28%),
-        linear-gradient(180deg, #f7f7f5 0%, #efefec 100%);
+        radial-gradient(circle at 12% 8%, rgba(0, 0, 0, 0.055), transparent 30%),
+        radial-gradient(circle at 88% 0%, rgba(0, 0, 0, 0.035), transparent 28%),
+        linear-gradient(180deg, #f7f7f5 0%, #eeeeea 100%);
     color: #151515;
+    scrollbar-gutter: stable;
 
-    .aq-hero {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: stretch;
-        margin-bottom: 18px;
-        padding: 24px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.78);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.06);
-        backdrop-filter: blur(14px);
-    }
-
-    .aq-eyebrow {
-        margin: 0 0 4px;
-        color: #6a6a65;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
     }
 
     h1,
@@ -37,22 +26,55 @@
         margin: 0;
     }
 
+    .aq-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 16px;
+        padding: 22px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.06);
+        backdrop-filter: blur(14px);
+    }
+
+    .aq-eyebrow {
+        margin: 0 0 4px;
+        color: #6a6a65;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
     h1 {
         font-size: clamp(28px, 3vw, 42px);
         font-weight: 850;
-        letter-spacing: -0.04em;
+        letter-spacing: -0.045em;
+        line-height: 1;
     }
 
     .aq-hero-copy {
-        max-width: 680px;
-        margin-top: 6px;
+        max-width: 760px;
+        margin-top: 8px;
         color: #62625d;
         font-size: 14px;
+        line-height: 1.45;
+    }
+
+    .aq-hero-actions {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+        min-width: 320px;
     }
 
     .aq-date-control {
-        min-width: 220px;
-        padding: 14px;
+        flex: 1;
+        min-width: 210px;
+        padding: 13px;
         border-radius: 20px;
         background: #111;
         color: #fff;
@@ -72,7 +94,7 @@
             border: 0;
             border-radius: 14px;
             padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.11);
             color: #fff;
             outline: none;
         }
@@ -80,33 +102,36 @@
 
     .aq-kpis {
         display: grid;
-        grid-template-columns: repeat(4, minmax(160px, 1fr));
+        grid-template-columns: repeat(5, minmax(145px, 1fr));
         gap: 12px;
-        margin-bottom: 18px;
+        margin-bottom: 16px;
     }
 
     .aq-kpi-card,
     .aq-panel {
         border: 1px solid rgba(0, 0, 0, 0.08);
-        background: rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.86);
         box-shadow: 0 12px 34px rgba(0, 0, 0, 0.05);
         backdrop-filter: blur(14px);
     }
 
     .aq-kpi-card {
+        min-height: 92px;
         border-radius: 22px;
         padding: 16px;
 
         span {
             display: block;
+            min-height: 28px;
             color: #666660;
             font-size: 12px;
-            font-weight: 650;
+            font-weight: 700;
+            line-height: 1.2;
         }
 
         strong {
             display: block;
-            margin-top: 4px;
+            margin-top: 8px;
             font-size: 30px;
             line-height: 1;
             letter-spacing: -0.04em;
@@ -115,19 +140,28 @@
 
     .aq-main-grid {
         display: grid;
-        grid-template-columns: minmax(420px, 1.2fr) minmax(360px, 0.8fr);
-        gap: 18px;
+        grid-template-columns: minmax(300px, 0.88fr) minmax(420px, 1.25fr) minmax(340px, 0.9fr);
+        gap: 16px;
         align-items: start;
+        min-width: 0;
     }
 
     .aq-side-stack {
         display: grid;
-        gap: 18px;
+        gap: 16px;
+        min-width: 0;
     }
 
     .aq-panel {
+        min-width: 0;
         border-radius: 28px;
-        padding: 18px;
+        padding: 17px;
+    }
+
+    .aq-request-card {
+        position: sticky;
+        top: 14px;
+        z-index: 2;
     }
 
     .aq-panel-header {
@@ -139,7 +173,13 @@
 
         h2 {
             font-size: 18px;
-            font-weight: 800;
+            font-weight: 850;
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            font-size: 15px;
+            font-weight: 850;
             letter-spacing: -0.02em;
         }
 
@@ -147,20 +187,35 @@
             margin-top: 3px;
             color: #6b6b66;
             font-size: 12px;
+            line-height: 1.35;
         }
+    }
+
+    .aq-panel-actions,
+    .aq-room-actions,
+    .aq-actions,
+    .aq-pending-actions,
+    .aq-booking-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .aq-panel-actions {
+        justify-content: flex-end;
     }
 
     .aq-room-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        grid-template-columns: 1fr;
         gap: 12px;
     }
 
     .aq-room-card {
         position: relative;
         cursor: pointer;
-        min-height: 170px;
-        padding: 16px;
+        padding: 15px;
         border-radius: 24px;
         border: 1px solid rgba(0, 0, 0, 0.08);
         background: linear-gradient(180deg, #fff, #f8f8f6);
@@ -173,35 +228,36 @@
             box-shadow: 0 16px 38px rgba(0, 0, 0, 0.10);
         }
 
+        &.is-active::before {
+            content: "";
+            position: absolute;
+            inset: 11px auto 11px 0;
+            width: 4px;
+            border-radius: 999px;
+            background: #111;
+        }
+
         h3 {
-            margin-top: 16px;
+            margin-top: 14px;
             font-size: 19px;
             font-weight: 850;
             letter-spacing: -0.03em;
+            line-height: 1.05;
         }
 
         p {
             margin-top: 5px;
-            min-height: 20px;
+            min-height: 18px;
             color: #64645f;
             font-size: 12px;
         }
     }
 
-    .aq-room-topline,
-    .aq-room-meta,
-    .aq-room-footer,
-    .aq-actions,
-    .aq-pending-actions,
-    .aq-booking-actions {
+    .aq-room-topline {
         display: flex;
         align-items: center;
-        gap: 8px;
-    }
-
-    .aq-room-topline,
-    .aq-room-footer {
         justify-content: space-between;
+        gap: 8px;
     }
 
     .aq-room-code {
@@ -210,59 +266,9 @@
         background: #eeeeea;
         color: #595954;
         font-size: 10px;
-        font-weight: 800;
+        font-weight: 850;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-    }
-
-    .aq-status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #989891;
-        box-shadow: 0 0 0 4px rgba(152, 152, 145, 0.14);
-    }
-
-    .aq-room-card.is-free .aq-status-dot,
-    .aq-state-badge.is-free {
-        background: #1f8f58;
-    }
-
-    .aq-room-card.is-busy .aq-status-dot,
-    .aq-state-badge.is-busy {
-        background: #b63d3d;
-    }
-
-    .aq-room-card.is-soon .aq-status-dot,
-    .aq-state-badge.is-soon {
-        background: #b7841e;
-    }
-
-    .aq-room-meta {
-        flex-wrap: wrap;
-        margin-top: 14px;
-
-        span {
-            padding: 6px 8px;
-            border-radius: 12px;
-            background: #f0f0ed;
-            color: #585853;
-            font-size: 11px;
-            font-weight: 650;
-        }
-    }
-
-    .aq-room-footer {
-        margin-top: 14px;
-        color: #4f4f4a;
-        font-size: 12px;
-        font-weight: 750;
-
-        small {
-            color: #777771;
-            font-size: 10px;
-            font-weight: 600;
-        }
     }
 
     .aq-state-badge,
@@ -270,13 +276,100 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 26px;
+        min-height: 25px;
         padding: 4px 10px;
         border-radius: 999px;
         color: #fff;
-        font-size: 11px;
-        font-weight: 800;
+        font-size: 10.5px;
+        font-weight: 850;
         white-space: nowrap;
+    }
+
+    .aq-state-badge.is-free {
+        background: #1f8f58;
+    }
+
+    .aq-state-badge.is-busy {
+        background: #b63d3d;
+    }
+
+    .aq-state-badge.is-soon {
+        background: #b7841e;
+    }
+
+    .aq-room-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 13px;
+
+        span {
+            padding: 6px 8px;
+            border-radius: 12px;
+            background: #f0f0ed;
+            color: #585853;
+            font-size: 11px;
+            font-weight: 700;
+        }
+    }
+
+    .aq-room-next {
+        display: grid;
+        gap: 3px;
+        margin-top: 13px;
+        padding: 12px;
+        border-radius: 16px;
+        background: #f5f5f2;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+
+        small {
+            color: #75756f;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        strong {
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        span {
+            color: #5d5d58;
+            font-size: 11.5px;
+            line-height: 1.25;
+        }
+
+        &.is-empty {
+            background: #fbfbfa;
+        }
+    }
+
+    .aq-room-actions {
+        justify-content: space-between;
+        margin-top: 12px;
+    }
+
+    .aq-selected-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            padding: 7px 9px;
+            border-radius: 13px;
+            background: #f0f0ed;
+            color: #555550;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
     }
 
     .aq-booking-list {
@@ -285,15 +378,27 @@
     }
 
     .aq-booking-row,
-    .aq-pending-row {
+    .aq-pending-row,
+    .aq-my-row {
         display: grid;
-        grid-template-columns: 150px minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
         padding: 12px;
         border: 1px solid rgba(0, 0, 0, 0.08);
         border-radius: 18px;
         background: #fbfbfa;
+    }
+
+    .aq-booking-row {
+        grid-template-columns: 118px minmax(0, 1fr) auto;
+    }
+
+    .aq-booking-row.is-approved {
+        border-color: rgba(31, 143, 88, 0.24);
+    }
+
+    .aq-booking-row.is-pending {
+        border-color: rgba(183, 132, 30, 0.28);
     }
 
     .aq-booking-time {
@@ -303,6 +408,10 @@
         strong,
         span {
             font-size: 11px;
+        }
+
+        strong {
+            font-weight: 850;
         }
 
         span {
@@ -318,14 +427,22 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 850;
         }
 
         p {
-            margin-top: 3px;
+            margin-top: 4px;
             color: #666660;
             font-size: 11px;
         }
+    }
+
+    .aq-booking-titleline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
     }
 
     .aq-booking-state.is-approved {
@@ -336,10 +453,104 @@
         background: #b7841e;
     }
 
+    .aq-booking-state.is-done {
+        background: #555;
+    }
+
+    .aq-booking-state.is-muted {
+        background: #999;
+    }
+
+    .aq-day-agenda {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .aq-subheader {
+        margin-bottom: 10px;
+
+        h3 {
+            font-size: 15px;
+            font-weight: 850;
+        }
+
+        p {
+            margin-top: 3px;
+            color: #6b6b66;
+            font-size: 11.5px;
+        }
+    }
+
+    .aq-mini-timeline {
+        display: grid;
+        gap: 8px;
+    }
+
+    .aq-mini-booking {
+        display: grid;
+        gap: 3px;
+        width: 100%;
+        text-align: left;
+        border-radius: 15px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: #fbfbfa;
+        color: #222;
+        padding: 10px 11px;
+
+        strong {
+            font-size: 11.5px;
+        }
+
+        span {
+            overflow: hidden;
+            color: #62625d;
+            font-size: 11px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        &.is-active {
+            border-color: #111;
+            box-shadow: inset 0 0 0 1px #111;
+        }
+
+        &.is-approved {
+            background: #f2f8f4;
+        }
+
+        &.is-pending {
+            background: #fbf6eb;
+        }
+    }
+
+    .aq-selected-room-pill {
+        display: grid;
+        gap: 2px;
+        margin-bottom: 12px;
+        padding: 11px 12px;
+        border-radius: 18px;
+        background: #111;
+        color: #fff;
+
+        span {
+            opacity: 0.68;
+            font-size: 10px;
+            font-weight: 850;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        strong {
+            font-size: 15px;
+            font-weight: 850;
+        }
+    }
+
     .aq-form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 11px;
 
         label {
             display: grid;
@@ -353,14 +564,16 @@
         span {
             color: #565650;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 850;
             letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
         input,
-        textarea {
+        textarea,
+        select {
             width: 100%;
+            min-width: 0;
             border: 1px solid rgba(0, 0, 0, 0.12);
             border-radius: 14px;
             padding: 10px 12px;
@@ -375,15 +588,52 @@
         }
 
         textarea {
-            min-height: 76px;
+            min-height: 78px;
             resize: vertical;
+        }
+    }
+
+    .aq-warning,
+    .aq-conflict-box {
+        margin-top: 11px;
+        border-radius: 16px;
+        padding: 11px 12px;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .aq-warning {
+        border: 1px solid rgba(182, 61, 61, 0.22);
+        background: #f8eeee;
+        color: #8b2f2f;
+        font-weight: 750;
+    }
+
+    .aq-conflict-box {
+        display: grid;
+        gap: 5px;
+        border: 1px solid rgba(183, 132, 30, 0.25);
+        background: #fbf6eb;
+        color: #6d4a0d;
+
+        strong {
+            font-size: 12.5px;
+        }
+
+        span,
+        li {
+            font-size: 11.5px;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
         }
     }
 
     .aq-actions {
         justify-content: flex-end;
-        flex-wrap: wrap;
-        margin-top: 14px;
+        margin-top: 13px;
     }
 
     button {
@@ -391,12 +641,17 @@
         border-radius: 999px;
         padding: 8px 13px;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 850;
         line-height: 1;
-        transition: transform 0.14s ease, opacity 0.14s ease;
+        transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
 
-        &:hover {
+        &:hover:not(:disabled) {
             transform: translateY(-1px);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
         }
     }
 
@@ -408,9 +663,15 @@
 
     .aq-secondary,
     .aq-booking-actions button,
-    .aq-pending-actions button {
+    .aq-pending-actions button,
+    .aq-my-row button {
         background: #ededeb;
         color: #1d1d1b;
+    }
+
+    .aq-refresh {
+        align-self: stretch;
+        min-width: 118px;
     }
 
     .aq-reject {
@@ -424,12 +685,18 @@
         font-size: 11px;
     }
 
-    .aq-pending-row {
+    .aq-pending-row,
+    .aq-my-row {
         grid-template-columns: minmax(0, 1fr) auto;
 
         strong {
             display: block;
+            min-width: 0;
+            overflow: hidden;
             font-size: 13px;
+            font-weight: 850;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         span {
@@ -448,21 +715,38 @@
         color: #666660;
         background: rgba(255, 255, 255, 0.56);
         text-align: center;
-        font-weight: 700;
+        font-weight: 750;
 
         &.compact {
-            padding: 18px;
+            padding: 17px;
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 1460px) {
+        .aq-main-grid {
+            grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.25fr);
+        }
+
+        .aq-side-stack {
+            grid-column: 1 / -1;
+            grid-template-columns: minmax(360px, 1fr) minmax(340px, 1fr);
+            align-items: start;
         }
     }
 
     @media (max-width: 1180px) {
-        .aq-main-grid,
         .aq-kpis {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, minmax(150px, 1fr));
         }
 
-        .aq-main-grid {
+        .aq-main-grid,
+        .aq-side-stack {
             grid-template-columns: 1fr;
+        }
+
+        .aq-request-card {
+            position: static;
         }
     }
 
@@ -470,6 +754,7 @@
         padding: 14px;
 
         .aq-hero,
+        .aq-hero-actions,
         .aq-kpis,
         .aq-form-grid {
             grid-template-columns: 1fr;
@@ -479,13 +764,29 @@
             flex-direction: column;
         }
 
+        .aq-hero-actions {
+            min-width: 0;
+            flex-direction: column;
+        }
+
         .aq-date-control {
             min-width: 0;
         }
 
         .aq-booking-row,
-        .aq-pending-row {
+        .aq-pending-row,
+        .aq-my-row {
             grid-template-columns: 1fr;
+        }
+
+        .aq-booking-titleline,
+        .aq-panel-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .aq-panel-actions {
+            justify-content: flex-start;
         }
     }
 }

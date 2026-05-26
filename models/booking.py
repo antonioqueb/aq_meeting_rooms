@@ -77,10 +77,11 @@ class AqMeetingRoomBooking(models.Model):
     @api.constrains('start', 'stop', 'room_id', 'state')
     def _check_dates_and_conflicts(self):
         for booking in self:
-            if booking.start and booking.stop and booking.start >= booking.stop:
-                raise ValidationError(_('La fecha de fin debe ser mayor que la fecha de inicio.'))
+            booking._validate_date_order()
             if booking.state == 'approved':
                 booking._ensure_no_approved_conflict()
+            elif booking.state == 'pending':
+                booking._ensure_no_request_conflict()
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -91,26 +92,85 @@ class AqMeetingRoomBooking(models.Model):
                 vals['participant_partner_ids'] = [(6, 0, [self.env.user.partner_id.id])]
         return super().create(vals_list)
 
-
     def write(self, vals):
         protected_fields = {'room_id', 'start', 'stop', 'objective', 'participant_partner_ids'}
         if protected_fields.intersection(vals) and not self.env.user.has_group('aq_meeting_rooms.group_meeting_room_approver'):
             locked = self.filtered(lambda booking: booking.state not in ['draft', 'pending'])
             if locked:
-                raise AccessError(_('Solo un autorizador puede modificar datos críticos de una reserva ya autorizada, rechazada, cancelada o finalizada.'))
-        return super().write(vals)
+                raise AccessError(_(
+                    'Solo un autorizador puede modificar datos críticos de una reserva ya autorizada, '
+                    'rechazada, cancelada o finalizada.'
+                ))
+
+        res = super().write(vals)
+
+        conflict_fields = {'room_id', 'start', 'stop', 'state'}
+        if conflict_fields.intersection(vals):
+            for booking in self:
+                booking._validate_date_order()
+                if booking.state == 'approved':
+                    booking._ensure_no_approved_conflict()
+                elif booking.state == 'pending':
+                    booking._ensure_no_request_conflict()
+        return res
+
+    def _validate_date_order(self):
+        self.ensure_one()
+        if self.start and self.stop and self.start >= self.stop:
+            raise ValidationError(_('La fecha de fin debe ser mayor que la fecha de inicio.'))
+
+    @api.model
+    def _find_overlapping_booking(self, room_id, start, stop, states, exclude_id=False):
+        if not room_id or not start or not stop:
+            return self.browse()
+        domain = [
+            ('room_id', '=', room_id),
+            ('state', 'in', states),
+            ('start', '<', stop),
+            ('stop', '>', start),
+        ]
+        if exclude_id:
+            domain.append(('id', '!=', exclude_id))
+        return self.search(domain, order='start asc', limit=1)
+
+    def _ensure_no_request_conflict(self):
+        self.ensure_one()
+        if not self.room_id or not self.start or not self.stop:
+            return
+        conflict = self._find_overlapping_booking(
+            self.room_id.id,
+            self.start,
+            self.stop,
+            states=['pending', 'approved'],
+            exclude_id=self.id,
+        )
+        if conflict:
+            if conflict.state == 'approved':
+                message = _(
+                    'La sala %(room)s ya tiene una reserva autorizada (%(booking)s) entre %(start)s y %(stop)s.'
+                )
+            else:
+                message = _(
+                    'La sala %(room)s ya tiene una solicitud pendiente (%(booking)s) entre %(start)s y %(stop)s.'
+                )
+            raise ValidationError(message % {
+                'room': self.room_id.display_name,
+                'booking': conflict.display_name,
+                'start': fields.Datetime.to_string(conflict.start),
+                'stop': fields.Datetime.to_string(conflict.stop),
+            })
 
     def _ensure_no_approved_conflict(self):
         self.ensure_one()
         if not self.room_id or not self.start or not self.stop:
             return
-        conflict = self.search([
-            ('id', '!=', self.id),
-            ('room_id', '=', self.room_id.id),
-            ('state', '=', 'approved'),
-            ('start', '<', self.stop),
-            ('stop', '>', self.start),
-        ], limit=1)
+        conflict = self._find_overlapping_booking(
+            self.room_id.id,
+            self.start,
+            self.stop,
+            states=['approved'],
+            exclude_id=self.id,
+        )
         if conflict:
             raise ValidationError(_(
                 'La sala %(room)s ya está autorizada para %(booking)s entre %(start)s y %(stop)s.'
@@ -129,6 +189,8 @@ class AqMeetingRoomBooking(models.Model):
         for booking in self:
             if booking.state not in ['draft', 'cancelled', 'rejected']:
                 continue
+            booking._validate_date_order()
+            booking._ensure_no_request_conflict()
             booking.write({'state': 'pending'})
             booking.message_post(body=_('Solicitud enviada para autorización.'))
         return True
@@ -138,6 +200,7 @@ class AqMeetingRoomBooking(models.Model):
         for booking in self:
             if booking.state != 'pending':
                 raise UserError(_('Solo puedes autorizar solicitudes pendientes.'))
+            booking._validate_date_order()
             booking._ensure_no_approved_conflict()
             booking.write({
                 'state': 'approved',
@@ -183,18 +246,24 @@ class AqMeetingRoomBooking(models.Model):
 
     def _create_default_minute(self):
         self.ensure_one()
-        return self.env['aq.meeting.minute'].create({
+        minute = self.env['aq.meeting.minute'].create({
             'name': _('Minuta %s') % self.name,
             'booking_id': self.id,
             'capture_by_id': self.env.user.id,
+            'chair_partner_id': self.requested_by_id.partner_id.id if self.requested_by_id.partner_id else False,
             'participant_partner_ids': [(6, 0, self.participant_partner_ids.ids)],
+            'summary': self.agenda or False,
         })
+        minute._seed_default_structure()
+        return minute
 
     def action_open_minute(self):
         self.ensure_one()
         if self.state not in ['approved', 'done']:
             raise UserError(_('La minuta se puede capturar cuando la reserva está autorizada o finalizada.'))
         minute = self.minute_ids[:1] or self._create_default_minute()
+        if not minute.line_ids:
+            minute._seed_default_structure()
         return {
             'name': _('Minuta'),
             'type': 'ir.actions.act_window',
@@ -224,10 +293,36 @@ class AqMeetingRoomBooking(models.Model):
         if not room_id or not start or not stop or not objective:
             raise UserError(_('Completa sala, inicio, fin y objetivo para crear la solicitud.'))
 
+        room = self.env['aq.meeting.room'].browse(int(room_id)).exists()
+        if not room or not room.active:
+            raise UserError(_('La sala seleccionada no existe o está inactiva.'))
+
+        start_dt = fields.Datetime.to_datetime(start)
+        stop_dt = fields.Datetime.to_datetime(stop)
+        if start_dt >= stop_dt:
+            raise UserError(_('La fecha de fin debe ser mayor que la fecha de inicio.'))
+
+        conflict = self._find_overlapping_booking(
+            room.id,
+            start_dt,
+            stop_dt,
+            states=['pending', 'approved'],
+        )
+        if conflict:
+            raise UserError(_(
+                'No se puede crear la solicitud. La sala %(room)s ya tiene %(state)s %(booking)s entre %(start)s y %(stop)s.'
+            ) % {
+                'room': room.display_name,
+                'state': dict(conflict._fields['state'].selection).get(conflict.state, conflict.state).lower(),
+                'booking': conflict.display_name,
+                'start': fields.Datetime.to_string(conflict.start),
+                'stop': fields.Datetime.to_string(conflict.stop),
+            })
+
         booking = self.create({
-            'room_id': int(room_id),
-            'start': fields.Datetime.to_datetime(start),
-            'stop': fields.Datetime.to_datetime(stop),
+            'room_id': room.id,
+            'start': start_dt,
+            'stop': stop_dt,
             'objective': objective,
             'agenda': vals.get('agenda') or False,
             'requested_by_id': self.env.user.id,
@@ -237,6 +332,7 @@ class AqMeetingRoomBooking(models.Model):
 
     def _dashboard_booking_payload(self):
         self.ensure_one()
+        state_labels = dict(self._fields['state'].selection)
         return {
             'id': self.id,
             'name': self.name,
@@ -245,9 +341,13 @@ class AqMeetingRoomBooking(models.Model):
             'requested_by': self.requested_by_id.display_name,
             'start': fields.Datetime.to_string(self.start) if self.start else '',
             'stop': fields.Datetime.to_string(self.stop) if self.stop else '',
-            'duration': self.duration,
+            'duration': round(self.duration or 0.0, 2),
             'objective': self.objective or '',
+            'agenda': self.agenda or '',
             'state': self.state,
-            'state_label': dict(self._fields['state'].selection).get(self.state),
+            'state_label': state_labels.get(self.state, self.state),
             'participants_count': len(self.participant_partner_ids),
+            'can_open_minute': self.state in ['approved', 'done'],
+            'has_minute': bool(self.minute_ids),
+            'minute_count': len(self.minute_ids),
         }

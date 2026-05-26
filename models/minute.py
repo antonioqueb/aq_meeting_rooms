@@ -21,6 +21,7 @@ class AqMeetingMinute(models.Model):
     name = fields.Char(string='Minuta', required=True, copy=False, default='Nueva', tracking=True)
     booking_id = fields.Many2one('aq.meeting.room.booking', string='Reserva', required=True, ondelete='cascade', tracking=True)
     room_id = fields.Many2one(related='booking_id.room_id', string='Sala', store=True, readonly=True)
+    objective = fields.Char(related='booking_id.objective', string='Objetivo', store=True, readonly=True)
     meeting_start = fields.Datetime(related='booking_id.start', string='Inicio', store=True, readonly=True)
     meeting_stop = fields.Datetime(related='booking_id.stop', string='Fin', store=True, readonly=True)
     requested_by_id = fields.Many2one(related='booking_id.requested_by_id', string='Solicitante', store=True, readonly=True)
@@ -37,6 +38,42 @@ class AqMeetingMinute(models.Model):
     agreements_summary = fields.Html(string='Acuerdos generales')
     risk_notes = fields.Html(string='Riesgos / bloqueos')
     line_ids = fields.One2many('aq.meeting.minute.line', 'minute_id', string='Estructura de minuta')
+    section_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Secciones',
+        domain=[('item_type', '=', 'section')],
+    )
+    note_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Puntos tratados',
+        domain=[('item_type', '=', 'note')],
+    )
+    agreement_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Acuerdos',
+        domain=[('item_type', '=', 'agreement')],
+    )
+    decision_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Decisiones',
+        domain=[('item_type', '=', 'decision')],
+    )
+    task_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Tareas',
+        domain=[('item_type', '=', 'task')],
+    )
+    risk_line_ids = fields.One2many(
+        'aq.meeting.minute.line',
+        'minute_id',
+        string='Riesgos',
+        domain=[('item_type', '=', 'risk')],
+    )
     line_count = fields.Integer(string='Líneas', compute='_compute_line_count')
     shared_date = fields.Datetime(string='Fecha de envío', readonly=True)
     state = fields.Selection(
@@ -59,6 +96,12 @@ class AqMeetingMinute(models.Model):
         self.ensure_one()
         return self.line_ids.sorted(key=lambda line: (line.sequence, line.parent_path or '', line.id))
 
+    def get_report_line_ids_by_type(self, item_type):
+        self.ensure_one()
+        return self.line_ids.filtered(lambda line: line.item_type == item_type).sorted(
+            key=lambda line: (line.sequence, line.parent_path or '', line.id)
+        )
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -67,53 +110,120 @@ class AqMeetingMinute(models.Model):
             if vals.get('booking_id') and not vals.get('participant_partner_ids'):
                 booking = self.env['aq.meeting.room.booking'].browse(vals['booking_id'])
                 vals['participant_partner_ids'] = [(6, 0, booking.participant_partner_ids.ids)]
+            if vals.get('booking_id') and not vals.get('chair_partner_id'):
+                booking = self.env['aq.meeting.room.booking'].browse(vals['booking_id'])
+                vals['chair_partner_id'] = booking.requested_by_id.partner_id.id if booking.requested_by_id.partner_id else False
         return super().create(vals_list)
 
-    def action_seed_structure(self):
+    def _seed_default_structure(self):
+        Line = self.env['aq.meeting.minute.line']
         for minute in self:
             if minute.line_ids:
-                raise UserError(_('La minuta ya contiene líneas.'))
-            section_context = self.env['aq.meeting.minute.line'].create({
+                continue
+
+            section_context = Line.create({
                 'minute_id': minute.id,
                 'sequence': 10,
                 'item_type': 'section',
                 'name': _('1. Contexto y objetivo'),
-                'description': _('Captura el objetivo, alcance y contexto principal de la reunión.'),
+                'description': _('Objetivo, alcance y motivo principal de la reunión.'),
             })
-            self.env['aq.meeting.minute.line'].create({
+            Line.create({
                 'minute_id': minute.id,
                 'sequence': 20,
                 'parent_id': section_context.id,
                 'item_type': 'note',
-                'name': _('Puntos discutidos'),
+                'name': _('Objetivo revisado'),
+                'description': _('Resume qué se esperaba resolver o definir durante la reunión.'),
             })
-            section_decisions = self.env['aq.meeting.minute.line'].create({
+
+            section_topics = Line.create({
                 'minute_id': minute.id,
                 'sequence': 30,
                 'item_type': 'section',
-                'name': _('2. Decisiones y acuerdos'),
+                'name': _('2. Temas tratados'),
+                'description': _('Puntos discutidos durante la sesión.'),
             })
-            self.env['aq.meeting.minute.line'].create({
+            Line.create({
                 'minute_id': minute.id,
                 'sequence': 40,
-                'parent_id': section_decisions.id,
-                'item_type': 'decision',
-                'name': _('Decisión clave'),
+                'parent_id': section_topics.id,
+                'item_type': 'note',
+                'name': _('Tema tratado'),
+                'description': _('Describe el tema revisado, datos relevantes y conclusiones parciales.'),
             })
-            section_tasks = self.env['aq.meeting.minute.line'].create({
+
+            section_decisions = Line.create({
                 'minute_id': minute.id,
                 'sequence': 50,
                 'item_type': 'section',
-                'name': _('3. Tareas y seguimiento'),
+                'name': _('3. Acuerdos y decisiones'),
+                'description': _('Compromisos aceptados y decisiones tomadas.'),
             })
-            self.env['aq.meeting.minute.line'].create({
+            Line.create({
                 'minute_id': minute.id,
                 'sequence': 60,
+                'parent_id': section_decisions.id,
+                'item_type': 'agreement',
+                'name': _('Acuerdo principal'),
+                'description': _('Registra el acuerdo con redacción clara y verificable.'),
+            })
+            Line.create({
+                'minute_id': minute.id,
+                'sequence': 70,
+                'parent_id': section_decisions.id,
+                'item_type': 'decision',
+                'name': _('Decisión tomada'),
+                'description': _('Registra la decisión, criterio aplicado y alcance.'),
+            })
+
+            section_tasks = Line.create({
+                'minute_id': minute.id,
+                'sequence': 80,
+                'item_type': 'section',
+                'name': _('4. Tareas y seguimiento'),
+                'description': _('Acciones asignadas con responsable, fecha compromiso y estado.'),
+            })
+            Line.create({
+                'minute_id': minute.id,
+                'sequence': 90,
                 'parent_id': section_tasks.id,
                 'item_type': 'task',
-                'name': _('Tarea clave'),
+                'name': _('Acción pendiente'),
+                'description': _('Describe la acción concreta que debe ejecutarse.'),
                 'task_state': 'todo',
             })
+
+            section_risks = Line.create({
+                'minute_id': minute.id,
+                'sequence': 100,
+                'item_type': 'section',
+                'name': _('5. Riesgos y bloqueos'),
+                'description': _('Riesgos, dependencias o bloqueos detectados.'),
+            })
+            Line.create({
+                'minute_id': minute.id,
+                'sequence': 110,
+                'parent_id': section_risks.id,
+                'item_type': 'risk',
+                'name': _('Riesgo / bloqueo'),
+                'description': _('Describe el riesgo, impacto posible y mitigación sugerida.'),
+            })
+
+            Line.create({
+                'minute_id': minute.id,
+                'sequence': 120,
+                'item_type': 'section',
+                'name': _('6. Cierre'),
+                'description': _('Conclusión de la sesión y próximos pasos generales.'),
+            })
+        return True
+
+    def action_seed_structure(self):
+        for minute in self:
+            if minute.line_ids:
+                raise UserError(_('La minuta ya contiene líneas. Si necesitas ajustar la estructura, edita las secciones existentes.'))
+        self._seed_default_structure()
         return True
 
     def action_confirm(self):
@@ -210,7 +320,7 @@ class AqMeetingMinuteLine(models.Model):
     item_type = fields.Selection(
         selection=[
             ('section', 'Sección'),
-            ('note', 'Nota'),
+            ('note', 'Punto tratado'),
             ('agreement', 'Acuerdo'),
             ('decision', 'Decisión'),
             ('task', 'Tarea'),
@@ -246,6 +356,21 @@ class AqMeetingMinuteLine(models.Model):
     )
     depth = fields.Integer(string='Nivel', compute='_compute_depth')
 
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            item_type = vals.get('item_type')
+            if item_type and item_type != 'task':
+                vals['task_state'] = False
+        return super().create(vals_list)
+
+    def write(self, vals):
+        clean_vals = dict(vals)
+        if clean_vals.get('item_type') and clean_vals.get('item_type') != 'task' and 'task_state' not in clean_vals:
+            clean_vals['task_state'] = False
+        return super().write(clean_vals)
+
     @api.depends('parent_id')
     def _compute_depth(self):
         for line in self:
@@ -255,6 +380,12 @@ class AqMeetingMinuteLine(models.Model):
                 depth += 1
                 parent = parent.parent_id
             line.depth = depth
+
+    @api.onchange('item_type')
+    def _onchange_item_type(self):
+        for line in self:
+            if line.item_type != 'task':
+                line.task_state = False
 
     @api.constrains('parent_id', 'minute_id')
     def _check_parent_minute(self):
