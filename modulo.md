@@ -1329,44 +1329,34 @@ class AqMeetingRoomsDashboard extends Component {
             rooms: [],
             bookings: [],
             pendingBookings: [],
-            myOpenBookings: [],
             selectedRoomId: false,
             canApprove: false,
-            filters: {
-                date: this._today(),
-            },
+            date: this._today(),
             form: {
-                start: this._defaultStart(),
-                stop: this._defaultStop(),
+                start: this._defaultTime(1),
+                stop: this._defaultTime(2),
                 objective: '',
                 agenda: '',
             },
         });
-        onWillStart(async () => {
-            await this.loadDashboard();
-        });
+        onWillStart(() => this.loadDashboard());
+    }
+
+    // --- Helpers de fecha ---------------------------------------------------
+
+    _pad(value) {
+        return String(value).padStart(2, '0');
     }
 
     _today() {
         return new Date().toISOString().slice(0, 10);
     }
 
-    _pad(value) {
-        return String(value).padStart(2, '0');
-    }
-
-    _defaultStart() {
-        const date = new Date();
-        date.setMinutes(0, 0, 0);
-        date.setHours(date.getHours() + 1);
-        return `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}T${this._pad(date.getHours())}:00`;
-    }
-
-    _defaultStop() {
-        const date = new Date();
-        date.setMinutes(0, 0, 0);
-        date.setHours(date.getHours() + 2);
-        return `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}T${this._pad(date.getHours())}:00`;
+    _defaultTime(offsetHours) {
+        const d = new Date();
+        d.setMinutes(0, 0, 0);
+        d.setHours(d.getHours() + offsetHours);
+        return `${d.getFullYear()}-${this._pad(d.getMonth() + 1)}-${this._pad(d.getDate())}T${this._pad(d.getHours())}:00`;
     }
 
     _normalizeDatetime(value) {
@@ -1374,27 +1364,14 @@ class AqMeetingRoomsDashboard extends Component {
             return false;
         }
         const normalized = value.replace('T', ' ');
-        if (normalized.length === 16) {
-            return `${normalized}:00`;
-        }
-        return normalized;
+        return normalized.length === 16 ? `${normalized}:00` : normalized;
     }
 
     _dateFromDatetime(value) {
-        if (!value || value.length < 10) {
-            return false;
-        }
-        return value.slice(0, 10);
+        return value && value.length >= 10 ? value.slice(0, 10) : false;
     }
 
-    _timeFromDatetime(value) {
-        if (!value || value.length < 16) {
-            return '—';
-        }
-        return value.slice(11, 16);
-    }
-
-    _setFormDate(dateValue) {
+    _syncFormDate(dateValue) {
         if (!dateValue) {
             return;
         }
@@ -1404,58 +1381,47 @@ class AqMeetingRoomsDashboard extends Component {
         this.state.form.stop = `${dateValue}T${stopTime}`;
     }
 
+    formatTime(value) {
+        return value && value.length >= 16 ? value.slice(11, 16) : '—';
+    }
+
     _errorMessage(error, fallback) {
-        if (error && error.data && error.data.message) {
-            return error.data.message;
-        }
-        if (error && error.message) {
-            return error.message;
-        }
-        return fallback;
+        return (error && error.data && error.data.message) || (error && error.message) || fallback;
     }
 
     _findBookingById(bookingId) {
         return (
-            this.state.bookings.find((booking) => booking.id === bookingId) ||
-            this.state.pendingBookings.find((booking) => booking.id === bookingId) ||
-            this.state.myOpenBookings.find((booking) => booking.id === bookingId) ||
+            this.state.bookings.find((b) => b.id === bookingId) ||
+            this.state.pendingBookings.find((b) => b.id === bookingId) ||
             false
         );
     }
 
-    _scrollToRequestCard() {
-        window.setTimeout(() => {
-            const requestCard = document.querySelector('.o_aq_meeting_dashboard .aq-request-card');
-            if (requestCard) {
-                requestCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 0);
-    }
+    // --- Carga --------------------------------------------------------------
 
     async loadDashboard(options = {}) {
         this.state.loading = true;
         try {
-            const date = this.state.filters.date || this._today();
-            const dateFrom = `${date} 00:00:00`;
-            const dateTo = `${date} 23:59:59`;
-            const preferredRoomId = options.preferredRoomId || this.state.selectedRoomId || false;
-            const data = await this.orm.call('aq.meeting.room', 'get_dashboard_data', [dateFrom, dateTo]);
+            const date = this.state.date || this._today();
+            const data = await this.orm.call('aq.meeting.room', 'get_dashboard_data', [
+                `${date} 00:00:00`,
+                `${date} 23:59:59`,
+            ]);
 
             this.state.rooms = data.rooms || [];
             this.state.bookings = data.bookings || [];
             this.state.pendingBookings = data.pending_bookings || [];
-            this.state.myOpenBookings = data.my_open_bookings || [];
             this.state.canApprove = Boolean(data.can_approve);
 
-            if (preferredRoomId && this.state.rooms.some((room) => room.id === Number(preferredRoomId))) {
-                this.state.selectedRoomId = Number(preferredRoomId);
-            } else if (!this.state.selectedRoomId && this.state.rooms.length) {
-                this.state.selectedRoomId = this.state.rooms[0].id;
-            } else if (this.state.selectedRoomId && !this.state.rooms.some((room) => room.id === this.state.selectedRoomId)) {
-                this.state.selectedRoomId = this.state.rooms.length ? this.state.rooms[0].id : false;
+            const preferred = options.preferredRoomId || this.state.selectedRoomId;
+            const ids = this.state.rooms.map((r) => r.id);
+            if (preferred && ids.includes(Number(preferred))) {
+                this.state.selectedRoomId = Number(preferred);
+            } else if (!ids.includes(this.state.selectedRoomId)) {
+                this.state.selectedRoomId = ids.length ? ids[0] : false;
             }
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible cargar el dashboard de salas.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible cargar el dashboard.'), { type: 'danger' });
         } finally {
             this.state.loading = false;
         }
@@ -1465,31 +1431,31 @@ class AqMeetingRoomsDashboard extends Component {
         await this.loadDashboard();
     }
 
+    async onDateChange(ev) {
+        this.state.date = ev.currentTarget.value || this._today();
+        this._syncFormDate(this.state.date);
+        await this.loadDashboard();
+    }
+
+    // --- Derivados ----------------------------------------------------------
+
     get selectedRoom() {
-        return this.state.rooms.find((room) => room.id === this.state.selectedRoomId) || false;
+        return this.state.rooms.find((r) => r.id === this.state.selectedRoomId) || false;
     }
 
     get selectedBookings() {
         if (!this.state.selectedRoomId) {
             return [];
         }
-        return this.state.bookings.filter((booking) => booking.room_id === this.state.selectedRoomId);
+        return this.state.bookings.filter((b) => b.room_id === this.state.selectedRoomId);
     }
 
-    get allDayBookings() {
-        return this.state.bookings || [];
-    }
-
-    get availableRoomsCount() {
-        return this.state.rooms.filter((room) => room.availability_state === 'free').length;
+    get freeRoomsCount() {
+        return this.state.rooms.filter((r) => r.availability_state === 'free').length;
     }
 
     get busyRoomsCount() {
-        return this.state.rooms.filter((room) => room.availability_state === 'busy').length;
-    }
-
-    get approvedBookingsCount() {
-        return this.state.bookings.filter((booking) => booking.state === 'approved').length;
+        return this.state.rooms.filter((r) => r.availability_state === 'busy').length;
     }
 
     get hasInvalidSlot() {
@@ -1504,94 +1470,52 @@ class AqMeetingRoomsDashboard extends Component {
         if (!this.state.selectedRoomId || !start || !stop || start >= stop) {
             return [];
         }
-        return this.state.bookings.filter((booking) => {
-            return (
-                booking.room_id === this.state.selectedRoomId &&
-                ['pending', 'approved'].includes(booking.state) &&
-                booking.start < stop &&
-                booking.stop > start
-            );
-        });
+        return this.state.bookings.filter(
+            (b) =>
+                b.room_id === this.state.selectedRoomId &&
+                ['pending', 'approved'].includes(b.state) &&
+                b.start < stop &&
+                b.stop > start
+        );
     }
 
-    selectRoomFromDataset(ev) {
+    statusClass(value) {
+        return { free: 'is-free', busy: 'is-busy', soon: 'is-soon' }[value] || '';
+    }
+
+    bookingStateClass(value) {
+        return (
+            {
+                approved: 'is-approved',
+                pending: 'is-pending',
+                done: 'is-done',
+                cancelled: 'is-muted',
+                rejected: 'is-muted',
+            }[value] || ''
+        );
+    }
+
+    // --- Interacciones ------------------------------------------------------
+
+    selectRoom(ev) {
         this.state.selectedRoomId = Number(ev.currentTarget.dataset.roomId);
-    }
-
-    reserveRoomFromDataset(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        this.state.selectedRoomId = Number(ev.currentTarget.dataset.roomId);
-        this._setFormDate(this.state.filters.date);
-        this._scrollToRequestCard();
-    }
-
-    reserveSelectedRoom() {
-        this._setFormDate(this.state.filters.date);
-        this._scrollToRequestCard();
     }
 
     onRoomSelect(ev) {
         this.state.selectedRoomId = Number(ev.currentTarget.value) || false;
     }
 
-    async onDateChange(ev) {
-        this.state.filters.date = ev.currentTarget.value || this._today();
-        this._setFormDate(this.state.filters.date);
-        await this.loadDashboard();
-    }
-
-    formatDateTime(value) {
-        if (!value) {
-            return '—';
-        }
-        return value.replace(' ', ' · ').slice(0, 18);
-    }
-
-    formatTime(value) {
-        return this._timeFromDatetime(value);
-    }
-
-    statusClass(value) {
-        if (value === 'free') {
-            return 'is-free';
-        }
-        if (value === 'busy') {
-            return 'is-busy';
-        }
-        if (value === 'soon') {
-            return 'is-soon';
-        }
-        return '';
-    }
-
-    bookingStateClass(value) {
-        if (value === 'approved') {
-            return 'is-approved';
-        }
-        if (value === 'pending') {
-            return 'is-pending';
-        }
-        if (value === 'done') {
-            return 'is-done';
-        }
-        if (value === 'cancelled' || value === 'rejected') {
-            return 'is-muted';
-        }
-        return '';
-    }
-
     async createQuickRequest() {
         if (!this.state.selectedRoomId) {
-            this.notification.add('Selecciona una sala para crear la solicitud.', { type: 'warning' });
+            this.notification.add('Selecciona una sala.', { type: 'warning' });
             return;
         }
         if (this.hasInvalidSlot) {
-            this.notification.add('La hora de fin debe ser mayor que la hora de inicio.', { type: 'warning' });
+            this.notification.add('La hora de fin debe ser mayor que la de inicio.', { type: 'warning' });
             return;
         }
         if (this.quickConflicts.length) {
-            this.notification.add('El horario seleccionado cruza con una solicitud o reserva existente.', { type: 'warning' });
+            this.notification.add('El horario cruza con otra reserva.', { type: 'warning' });
             return;
         }
 
@@ -1607,11 +1531,8 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud enviada para autorización.', { type: 'success' });
             this.state.form.objective = '';
             this.state.form.agenda = '';
-            if (newBooking && newBooking.room_id) {
-                this.state.selectedRoomId = newBooking.room_id;
-            }
             if (newBooking && newBooking.start) {
-                this.state.filters.date = this._dateFromDatetime(newBooking.start) || this.state.filters.date;
+                this.state.date = this._dateFromDatetime(newBooking.start) || this.state.date;
             }
             await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
         } catch (error) {
@@ -1620,13 +1541,6 @@ class AqMeetingRoomsDashboard extends Component {
     }
 
     openFullRequestForm() {
-        const context = {
-            default_room_id: this.state.selectedRoomId || false,
-            default_start: this._normalizeDatetime(this.state.form.start),
-            default_stop: this._normalizeDatetime(this.state.form.stop),
-            default_objective: this.state.form.objective || false,
-            default_agenda: this.state.form.agenda || false,
-        };
         this.action.doAction({
             type: 'ir.actions.act_window',
             name: 'Nueva solicitud de sala',
@@ -1634,11 +1548,17 @@ class AqMeetingRoomsDashboard extends Component {
             view_mode: 'form',
             views: [[false, 'form']],
             target: 'current',
-            context,
+            context: {
+                default_room_id: this.state.selectedRoomId || false,
+                default_start: this._normalizeDatetime(this.state.form.start),
+                default_stop: this._normalizeDatetime(this.state.form.stop),
+                default_objective: this.state.form.objective || false,
+                default_agenda: this.state.form.agenda || false,
+            },
         });
     }
 
-    openSelectedRoomBookings() {
+    openRoomCalendar() {
         if (!this.state.selectedRoomId) {
             return;
         }
@@ -1650,10 +1570,7 @@ class AqMeetingRoomsDashboard extends Component {
             views: [[false, 'calendar'], [false, 'list'], [false, 'form']],
             target: 'current',
             domain: [['room_id', '=', this.state.selectedRoomId]],
-            context: {
-                default_room_id: this.state.selectedRoomId,
-                search_default_today: 1,
-            },
+            context: { default_room_id: this.state.selectedRoomId, search_default_today: 1 },
         });
     }
 
@@ -1696,11 +1613,11 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud autorizada.', { type: 'success' });
             if (booking) {
                 this.state.selectedRoomId = booking.room_id;
-                this.state.filters.date = this._dateFromDatetime(booking.start) || this.state.filters.date;
+                this.state.date = this._dateFromDatetime(booking.start) || this.state.date;
             }
             await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible autorizar la solicitud.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible autorizar.'), { type: 'danger' });
         }
     }
 
@@ -1712,7 +1629,7 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud rechazada.', { type: 'warning' });
             await this.loadDashboard();
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible rechazar la solicitud.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible rechazar.'), { type: 'danger' });
         }
     }
 }
@@ -1724,19 +1641,23 @@ registry.category('actions').add('aq_meeting_rooms.dashboard', AqMeetingRoomsDas
 
 ## ./static/src/scss/dashboard.scss
 ```scss
-.o_aq_meeting_dashboard {
+.o_aq_rooms {
+    --aq-bg: #f6f6f4;
+    --aq-surface: #ffffff;
+    --aq-border: #e4e4e0;
+    --aq-text: #1a1a18;
+    --aq-muted: #75756f;
+    --aq-accent: #111111;
+    --aq-free: #1f8f58;
+    --aq-busy: #b63d3d;
+    --aq-soon: #b7841e;
+
     height: 100%;
-    max-height: 100%;
-    min-height: 0;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 22px;
-    background:
-        radial-gradient(circle at 12% 8%, rgba(0, 0, 0, 0.055), transparent 30%),
-        radial-gradient(circle at 88% 0%, rgba(0, 0, 0, 0.035), transparent 28%),
-        linear-gradient(180deg, #f7f7f5 0%, #eeeeea 100%);
-    color: #151515;
-    scrollbar-gutter: stable;
+    padding: 20px;
+    background: var(--aq-bg);
+    color: var(--aq-text);
+    font-size: 13px;
 
     *,
     *::before,
@@ -1746,633 +1667,412 @@ registry.category('actions').add('aq_meeting_rooms.dashboard', AqMeetingRoomsDas
 
     h1,
     h2,
-    h3,
-    h4,
-    p {
+    p,
+    ul {
         margin: 0;
     }
 
-    .aq-hero {
+    /* --- Encabezado --- */
+    .aq-head {
         display: flex;
+        align-items: flex-end;
         justify-content: space-between;
-        gap: 18px;
-        align-items: stretch;
+        gap: 16px;
+        flex-wrap: wrap;
         margin-bottom: 16px;
-        padding: 22px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.06);
-        backdrop-filter: blur(14px);
     }
 
-    .aq-eyebrow {
-        margin: 0 0 4px;
-        color: #6a6a65;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
+    .aq-head-title h1 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
     }
 
-    h1 {
-        font-size: clamp(28px, 3vw, 42px);
-        font-weight: 850;
-        letter-spacing: -0.045em;
-        line-height: 1;
+    .aq-head-title p {
+        margin-top: 2px;
+        color: var(--aq-muted);
+        font-size: 12.5px;
     }
 
-    .aq-hero-copy {
-        max-width: 760px;
-        margin-top: 8px;
-        color: #62625d;
-        font-size: 14px;
-        line-height: 1.45;
-    }
-
-    .aq-hero-actions {
+    .aq-head-tools {
         display: flex;
-        align-items: stretch;
+        align-items: flex-end;
         gap: 10px;
-        min-width: 320px;
     }
 
-    .aq-date-control {
-        flex: 1;
-        min-width: 210px;
-        padding: 13px;
-        border-radius: 20px;
-        background: #111;
-        color: #fff;
+    .aq-date {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 8px;
+        gap: 4px;
 
-        label {
+        span {
+            color: var(--aq-muted);
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            opacity: 0.68;
+            font-weight: 600;
         }
 
         input {
-            border: 0;
-            border-radius: 14px;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.11);
-            color: #fff;
+            border: 1px solid var(--aq-border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            background: var(--aq-surface);
+            color: var(--aq-text);
             outline: none;
         }
     }
 
-    .aq-kpis {
+    /* --- Indicadores --- */
+    .aq-stats {
         display: grid;
-        grid-template-columns: repeat(5, minmax(145px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
         margin-bottom: 16px;
     }
 
-    .aq-kpi-card,
-    .aq-panel {
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.05);
-        backdrop-filter: blur(14px);
-    }
-
-    .aq-kpi-card {
-        min-height: 92px;
-        border-radius: 22px;
-        padding: 16px;
+    .aq-stat {
+        padding: 12px 14px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
 
         span {
             display: block;
-            min-height: 28px;
-            color: #666660;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        strong {
-            display: block;
-            margin-top: 8px;
-            font-size: 30px;
-            line-height: 1;
-            letter-spacing: -0.04em;
-        }
-    }
-
-    .aq-main-grid {
-        display: grid;
-        grid-template-columns: minmax(300px, 0.88fr) minmax(420px, 1.25fr) minmax(340px, 0.9fr);
-        gap: 16px;
-        align-items: start;
-        min-width: 0;
-    }
-
-    .aq-side-stack {
-        display: grid;
-        gap: 16px;
-        min-width: 0;
-    }
-
-    .aq-panel {
-        min-width: 0;
-        border-radius: 28px;
-        padding: 17px;
-    }
-
-    .aq-request-card {
-        position: sticky;
-        top: 14px;
-        z-index: 2;
-    }
-
-    .aq-panel-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 14px;
-
-        h2 {
-            font-size: 18px;
-            font-weight: 850;
-            letter-spacing: -0.02em;
-        }
-
-        h3 {
-            font-size: 15px;
-            font-weight: 850;
-            letter-spacing: -0.02em;
-        }
-
-        p {
-            margin-top: 3px;
-            color: #6b6b66;
-            font-size: 12px;
-            line-height: 1.35;
-        }
-    }
-
-    .aq-panel-actions,
-    .aq-room-actions,
-    .aq-actions,
-    .aq-pending-actions,
-    .aq-booking-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .aq-panel-actions {
-        justify-content: flex-end;
-    }
-
-    .aq-room-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .aq-room-card {
-        position: relative;
-        cursor: pointer;
-        padding: 15px;
-        border-radius: 24px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: linear-gradient(180deg, #fff, #f8f8f6);
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-
-        &:hover,
-        &.is-active {
-            transform: translateY(-2px);
-            border-color: rgba(0, 0, 0, 0.26);
-            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.10);
-        }
-
-        &.is-active::before {
-            content: "";
-            position: absolute;
-            inset: 11px auto 11px 0;
-            width: 4px;
-            border-radius: 999px;
-            background: #111;
-        }
-
-        h3 {
-            margin-top: 14px;
-            font-size: 19px;
-            font-weight: 850;
-            letter-spacing: -0.03em;
-            line-height: 1.05;
-        }
-
-        p {
-            margin-top: 5px;
-            min-height: 18px;
-            color: #64645f;
-            font-size: 12px;
-        }
-    }
-
-    .aq-room-topline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .aq-room-code {
-        padding: 5px 9px;
-        border-radius: 999px;
-        background: #eeeeea;
-        color: #595954;
-        font-size: 10px;
-        font-weight: 850;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .aq-state-badge,
-    .aq-booking-state {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 25px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        color: #fff;
-        font-size: 10.5px;
-        font-weight: 850;
-        white-space: nowrap;
-    }
-
-    .aq-state-badge.is-free {
-        background: #1f8f58;
-    }
-
-    .aq-state-badge.is-busy {
-        background: #b63d3d;
-    }
-
-    .aq-state-badge.is-soon {
-        background: #b7841e;
-    }
-
-    .aq-room-meta {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 7px;
-        margin-top: 13px;
-
-        span {
-            padding: 6px 8px;
-            border-radius: 12px;
-            background: #f0f0ed;
-            color: #585853;
-            font-size: 11px;
-            font-weight: 700;
-        }
-    }
-
-    .aq-room-next {
-        display: grid;
-        gap: 3px;
-        margin-top: 13px;
-        padding: 12px;
-        border-radius: 16px;
-        background: #f5f5f2;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-
-        small {
-            color: #75756f;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        strong {
-            font-size: 13px;
-            font-weight: 850;
-        }
-
-        span {
-            color: #5d5d58;
+            color: var(--aq-muted);
             font-size: 11.5px;
-            line-height: 1.25;
+            font-weight: 600;
         }
 
-        &.is-empty {
-            background: #fbfbfa;
+        strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
     }
 
-    .aq-room-actions {
-        justify-content: space-between;
-        margin-top: 12px;
+    /* --- Layout principal --- */
+    .aq-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr 0.95fr;
+        gap: 14px;
+        align-items: start;
     }
 
-    .aq-selected-summary {
+    .aq-col {
+        border: 1px solid var(--aq-border);
+        border-radius: 12px;
+        background: var(--aq-surface);
+        padding: 14px;
+    }
+
+    .aq-col-head {
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
         gap: 8px;
         margin-bottom: 12px;
 
-        span {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            max-width: 100%;
-            padding: 7px 9px;
-            border-radius: 13px;
-            background: #f0f0ed;
-            color: #555550;
-            font-size: 11.5px;
+        h2 {
+            font-size: 14px;
             font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        small {
+            color: var(--aq-muted);
+            font-size: 11.5px;
+        }
+
+        &.aq-mt {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid var(--aq-border);
         }
     }
 
-    .aq-booking-list {
+    /* --- Lista de salas --- */
+    .aq-rooms {
         display: grid;
-        gap: 10px;
+        gap: 8px;
     }
 
-    .aq-booking-row,
-    .aq-pending-row,
-    .aq-my-row {
+    .aq-room {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        padding: 11px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+
+        &:hover {
+            border-color: #c9c9c4;
+        }
+
+        &.is-active {
+            border-color: var(--aq-accent);
+            background: #fafafa;
+        }
+    }
+
+    .aq-room-info {
+        flex: 1;
+        min-width: 0;
+
+        strong {
+            display: block;
+            overflow: hidden;
+            font-size: 13.5px;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11.5px;
+        }
+    }
+
+    .aq-dot {
+        flex: 0 0 auto;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #c4c4be;
+
+        &.is-free { background: var(--aq-free); }
+        &.is-busy { background: var(--aq-busy); }
+        &.is-soon { background: var(--aq-soon); }
+    }
+
+    /* --- Etiquetas de estado --- */
+    .aq-tag {
+        flex: 0 0 auto;
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--aq-border);
+        color: var(--aq-muted);
+        font-size: 10.5px;
+        font-weight: 650;
+        white-space: nowrap;
+
+        &.is-free { border-color: rgba(31, 143, 88, 0.4); color: var(--aq-free); }
+        &.is-busy { border-color: rgba(182, 61, 61, 0.4); color: var(--aq-busy); }
+        &.is-soon { border-color: rgba(183, 132, 30, 0.4); color: var(--aq-soon); }
+        &.is-approved { border-color: rgba(31, 143, 88, 0.4); color: var(--aq-free); }
+        &.is-pending { border-color: rgba(183, 132, 30, 0.4); color: var(--aq-soon); }
+        &.is-done,
+        &.is-muted { color: var(--aq-muted); }
+    }
+
+    /* --- Reservas (agenda) --- */
+    .aq-bookings {
         display: grid;
+        gap: 8px;
+    }
+
+    .aq-booking {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
         gap: 12px;
         align-items: center;
-        padding: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 18px;
-        background: #fbfbfa;
-    }
+        padding: 11px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+        border-left: 3px solid var(--aq-border);
 
-    .aq-booking-row {
-        grid-template-columns: 118px minmax(0, 1fr) auto;
-    }
-
-    .aq-booking-row.is-approved {
-        border-color: rgba(31, 143, 88, 0.24);
-    }
-
-    .aq-booking-row.is-pending {
-        border-color: rgba(183, 132, 30, 0.28);
+        &.is-approved { border-left-color: var(--aq-free); }
+        &.is-pending { border-left-color: var(--aq-soon); }
+        &.is-done,
+        &.is-muted { border-left-color: #c4c4be; }
     }
 
     .aq-booking-time {
-        display: grid;
-        gap: 3px;
-
-        strong,
-        span {
-            font-size: 11px;
-        }
+        text-align: center;
 
         strong {
-            font-weight: 850;
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
         }
 
-        span {
-            color: #6b6b66;
+        small {
+            color: var(--aq-muted);
+            font-size: 11px;
         }
     }
 
-    .aq-booking-body {
+    .aq-booking-main {
         min-width: 0;
 
-        h4 {
+        strong {
+            display: block;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
             font-size: 13px;
-            font-weight: 850;
-        }
-
-        p {
-            margin-top: 4px;
-            color: #666660;
-            font-size: 11px;
-        }
-    }
-
-    .aq-booking-titleline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .aq-booking-state.is-approved {
-        background: #1f8f58;
-    }
-
-    .aq-booking-state.is-pending {
-        background: #b7841e;
-    }
-
-    .aq-booking-state.is-done {
-        background: #555;
-    }
-
-    .aq-booking-state.is-muted {
-        background: #999;
-    }
-
-    .aq-day-agenda {
-        margin-top: 18px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-    }
-
-    .aq-subheader {
-        margin-bottom: 10px;
-
-        h3 {
-            font-size: 15px;
-            font-weight: 850;
-        }
-
-        p {
-            margin-top: 3px;
-            color: #6b6b66;
-            font-size: 11.5px;
-        }
-    }
-
-    .aq-mini-timeline {
-        display: grid;
-        gap: 8px;
-    }
-
-    .aq-mini-booking {
-        display: grid;
-        gap: 3px;
-        width: 100%;
-        text-align: left;
-        border-radius: 15px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: #fbfbfa;
-        color: #222;
-        padding: 10px 11px;
-
-        strong {
-            font-size: 11.5px;
-        }
-
-        span {
-            overflow: hidden;
-            color: #62625d;
-            font-size: 11px;
+            font-weight: 650;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        &.is-active {
-            border-color: #111;
-            box-shadow: inset 0 0 0 1px #111;
-        }
-
-        &.is-approved {
-            background: #f2f8f4;
-        }
-
-        &.is-pending {
-            background: #fbf6eb;
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11.5px;
         }
     }
 
-    .aq-selected-room-pill {
+    .aq-booking-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .aq-booking-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    /* --- Formulario --- */
+    .aq-form {
         display: grid;
-        gap: 2px;
-        margin-bottom: 12px;
-        padding: 11px 12px;
-        border-radius: 18px;
-        background: #111;
-        color: #fff;
-
-        span {
-            opacity: 0.68;
-            font-size: 10px;
-            font-weight: 850;
-            letter-spacing: 0.09em;
-            text-transform: uppercase;
-        }
-
-        strong {
-            font-size: 15px;
-            font-weight: 850;
-        }
+        gap: 11px;
     }
 
-    .aq-form-grid {
+    .aq-field-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 11px;
+    }
 
-        label {
-            display: grid;
-            gap: 6px;
-
-            &.aq-full {
-                grid-column: 1 / -1;
-            }
-        }
+    .aq-field {
+        display: grid;
+        gap: 5px;
 
         span {
-            color: #565650;
+            color: var(--aq-muted);
             font-size: 11px;
-            font-weight: 850;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            font-weight: 600;
         }
 
         input,
-        textarea,
-        select {
+        select,
+        textarea {
             width: 100%;
             min-width: 0;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            border-radius: 14px;
-            padding: 10px 12px;
-            background: #fff;
-            color: #171717;
+            border: 1px solid var(--aq-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: var(--aq-surface);
+            color: var(--aq-text);
             outline: none;
 
             &:focus {
-                border-color: #111;
-                box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+                border-color: var(--aq-accent);
             }
         }
 
         textarea {
-            min-height: 78px;
+            min-height: 64px;
             resize: vertical;
         }
     }
 
-    .aq-warning,
-    .aq-conflict-box {
-        margin-top: 11px;
-        border-radius: 16px;
-        padding: 11px 12px;
-        font-size: 12px;
-        line-height: 1.35;
+    .aq-form-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
     }
 
-    .aq-warning {
-        border: 1px solid rgba(182, 61, 61, 0.22);
+    /* --- Alertas --- */
+    .aq-alert {
+        margin: 0;
+        padding: 9px 11px;
+        border-radius: 8px;
+        font-size: 11.5px;
         background: #f8eeee;
+        border: 1px solid rgba(182, 61, 61, 0.25);
         color: #8b2f2f;
-        font-weight: 750;
+
+        &.aq-alert-warn {
+            background: #fbf6eb;
+            border-color: rgba(183, 132, 30, 0.25);
+            color: #6d4a0d;
+
+            ul {
+                margin: 4px 0 0;
+                padding-left: 16px;
+            }
+        }
     }
 
-    .aq-conflict-box {
+    /* --- Pendientes --- */
+    .aq-pending {
         display: grid;
-        gap: 5px;
-        border: 1px solid rgba(183, 132, 30, 0.25);
-        background: #fbf6eb;
-        color: #6d4a0d;
+        gap: 8px;
+    }
+
+    .aq-pending-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+    }
+
+    .aq-pending-info {
+        min-width: 0;
 
         strong {
+            display: block;
+            overflow: hidden;
             font-size: 12.5px;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        span,
-        li {
-            font-size: 11.5px;
-        }
-
-        ul {
-            margin: 0;
-            padding-left: 18px;
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11px;
         }
     }
 
-    .aq-actions {
-        justify-content: flex-end;
-        margin-top: 13px;
+    .aq-pending-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
     }
 
-    button {
-        border: 0;
-        border-radius: 999px;
-        padding: 8px 13px;
+    /* --- Botones --- */
+    .aq-btn {
+        border: 1px solid var(--aq-border);
+        border-radius: 8px;
+        padding: 7px 13px;
+        background: var(--aq-surface);
+        color: var(--aq-text);
         font-size: 12px;
-        font-weight: 850;
-        line-height: 1;
-        transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.14s ease, opacity 0.14s ease;
 
         &:hover:not(:disabled) {
-            transform: translateY(-1px);
+            background: #f0f0ed;
         }
 
         &:disabled {
@@ -2381,138 +2081,76 @@ registry.category('actions').add('aq_meeting_rooms.dashboard', AqMeetingRoomsDas
         }
     }
 
-    .aq-primary,
-    .aq-approve {
-        background: #111;
+    .aq-btn-sm {
+        padding: 5px 10px;
+        font-size: 11.5px;
+    }
+
+    .aq-btn-primary {
+        background: var(--aq-accent);
+        border-color: var(--aq-accent);
         color: #fff;
-    }
 
-    .aq-secondary,
-    .aq-booking-actions button,
-    .aq-pending-actions button,
-    .aq-my-row button {
-        background: #ededeb;
-        color: #1d1d1b;
-    }
-
-    .aq-refresh {
-        align-self: stretch;
-        min-width: 118px;
-    }
-
-    .aq-reject {
-        background: #f1dfdf !important;
-        color: #8b2f2f !important;
-    }
-
-    .aq-hint {
-        margin-top: 10px;
-        color: #74746f;
-        font-size: 11px;
-    }
-
-    .aq-pending-row,
-    .aq-my-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-
-        strong {
-            display: block;
-            min-width: 0;
-            overflow: hidden;
-            font-size: 13px;
-            font-weight: 850;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        span {
-            display: block;
-            margin-top: 3px;
-            color: #666660;
-            font-size: 11px;
+        &:hover:not(:disabled) {
+            background: #000;
         }
     }
 
-    .aq-empty-state,
-    .aq-loading {
-        padding: 28px;
-        border-radius: 22px;
-        border: 1px dashed rgba(0, 0, 0, 0.16);
-        color: #666660;
-        background: rgba(255, 255, 255, 0.56);
+    .aq-btn-ghost {
+        background: transparent;
+    }
+
+    .aq-btn-danger {
+        background: #f1dfdf;
+        border-color: rgba(182, 61, 61, 0.3);
+        color: #8b2f2f;
+
+        &:hover:not(:disabled) {
+            background: #ecd2d2;
+        }
+    }
+
+    /* --- Vacío / carga --- */
+    .aq-empty {
+        padding: 22px;
+        border: 1px dashed var(--aq-border);
+        border-radius: 10px;
+        color: var(--aq-muted);
         text-align: center;
-        font-weight: 750;
-
-        &.compact {
-            padding: 17px;
-            font-size: 12px;
-        }
+        font-size: 12px;
     }
 
-    @media (max-width: 1460px) {
-        .aq-main-grid {
-            grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.25fr);
+    /* --- Responsivo --- */
+    @media (max-width: 1200px) {
+        .aq-grid {
+            grid-template-columns: 1fr 1fr;
         }
 
-        .aq-side-stack {
+        .aq-grid > .aq-col:last-child {
             grid-column: 1 / -1;
-            grid-template-columns: minmax(360px, 1fr) minmax(340px, 1fr);
-            align-items: start;
-        }
-    }
-
-    @media (max-width: 1180px) {
-        .aq-kpis {
-            grid-template-columns: repeat(3, minmax(150px, 1fr));
-        }
-
-        .aq-main-grid,
-        .aq-side-stack {
-            grid-template-columns: 1fr;
-        }
-
-        .aq-request-card {
-            position: static;
         }
     }
 
     @media (max-width: 720px) {
         padding: 14px;
 
-        .aq-hero,
-        .aq-hero-actions,
-        .aq-kpis,
-        .aq-form-grid {
+        .aq-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .aq-grid {
             grid-template-columns: 1fr;
         }
 
-        .aq-hero {
-            flex-direction: column;
+        .aq-booking {
+            grid-template-columns: 50px 1fr;
         }
 
-        .aq-hero-actions {
-            min-width: 0;
-            flex-direction: column;
-        }
-
-        .aq-date-control {
-            min-width: 0;
-        }
-
-        .aq-booking-row,
-        .aq-pending-row,
-        .aq-my-row {
-            grid-template-columns: 1fr;
-        }
-
-        .aq-booking-titleline,
-        .aq-panel-header {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-
-        .aq-panel-actions {
-            justify-content: flex-start;
+        .aq-booking-side {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
         }
     }
 }
@@ -2523,280 +2161,190 @@ registry.category('actions').add('aq_meeting_rooms.dashboard', AqMeetingRoomsDas
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="aq_meeting_rooms.Dashboard">
-        <div class="o_aq_meeting_dashboard">
-            <section class="aq-hero">
-                <div>
-                    <p class="aq-eyebrow">Gestión corporativa</p>
+        <div class="o_aq_rooms">
+
+            <!-- Encabezado -->
+            <header class="aq-head">
+                <div class="aq-head-title">
                     <h1>Salas de juntas</h1>
-                    <p class="aq-hero-copy">Selecciona una sala, revisa su agenda real del día y crea una solicitud sin salir del dashboard.</p>
+                    <p>Consulta disponibilidad y crea solicitudes sujetas a autorización.</p>
                 </div>
-                <div class="aq-hero-actions">
-                    <div class="aq-date-control">
-                        <label>Fecha de consulta</label>
-                        <input type="date" t-att-value="state.filters.date" t-on-input="onDateChange"/>
-                    </div>
-                    <button type="button" class="aq-secondary aq-refresh" t-on-click="refreshDashboard">
+                <div class="aq-head-tools">
+                    <label class="aq-date">
+                        <span>Fecha</span>
+                        <input type="date" t-att-value="state.date" t-on-input="onDateChange"/>
+                    </label>
+                    <button type="button" class="aq-btn aq-btn-ghost" t-on-click="refreshDashboard">
                         <i class="fa fa-refresh"/> Actualizar
                     </button>
                 </div>
-            </section>
+            </header>
 
-            <section class="aq-kpis">
-                <div class="aq-kpi-card">
-                    <span>Total salas</span>
+            <!-- Indicadores -->
+            <section class="aq-stats">
+                <div class="aq-stat">
+                    <span>Salas</span>
                     <strong t-esc="state.rooms.length"/>
                 </div>
-                <div class="aq-kpi-card">
-                    <span>Disponibles ahora</span>
-                    <strong t-esc="availableRoomsCount"/>
+                <div class="aq-stat">
+                    <span>Disponibles</span>
+                    <strong t-esc="freeRoomsCount"/>
                 </div>
-                <div class="aq-kpi-card">
-                    <span>Ocupadas ahora</span>
+                <div class="aq-stat">
+                    <span>Ocupadas</span>
                     <strong t-esc="busyRoomsCount"/>
                 </div>
-                <div class="aq-kpi-card">
-                    <span>Reservas autorizadas del día</span>
-                    <strong t-esc="approvedBookingsCount"/>
-                </div>
-                <div class="aq-kpi-card">
-                    <span>Pendientes por revisar</span>
+                <div class="aq-stat">
+                    <span t-if="state.canApprove">Pendientes</span>
+                    <span t-else="">Mis pendientes</span>
                     <strong t-esc="state.pendingBookings.length"/>
                 </div>
             </section>
 
             <t t-if="state.loading">
-                <div class="aq-loading">Cargando disponibilidad...</div>
+                <div class="aq-empty">Cargando disponibilidad…</div>
             </t>
 
             <t t-else="">
-                <main class="aq-main-grid">
-                    <section class="aq-panel aq-room-panel">
-                        <div class="aq-panel-header">
-                            <div>
-                                <h2>Salas disponibles</h2>
-                                <p>El botón “Reservar” deja lista la solicitud rápida con la sala seleccionada.</p>
-                            </div>
+                <div class="aq-grid">
+
+                    <!-- Columna: salas -->
+                    <section class="aq-col">
+                        <div class="aq-col-head">
+                            <h2>Salas</h2>
+                            <small t-esc="state.date"/>
                         </div>
 
-                        <div class="aq-room-grid">
-                            <t t-if="state.rooms.length">
-                                <article t-foreach="state.rooms" t-as="room" t-key="room.id"
-                                         t-att-data-room-id="room.id"
-                                         t-on-click="selectRoomFromDataset"
-                                         t-att-class="'aq-room-card ' + (state.selectedRoomId === room.id ? 'is-active ' : '') + statusClass(room.availability_state)">
-                                    <div class="aq-room-topline">
-                                        <span class="aq-room-code" t-esc="room.code || 'Sala'"/>
-                                        <span t-att-class="'aq-state-badge ' + statusClass(room.availability_state)" t-esc="room.availability_label"/>
-                                    </div>
-                                    <h3 t-esc="room.name"/>
-                                    <p t-if="room.location" t-esc="room.location"/>
-                                    <p t-else="">Sin ubicación capturada.</p>
-
-                                    <div class="aq-room-meta">
-                                        <span><i class="fa fa-users"/> <t t-esc="room.capacity"/> personas</span>
-                                        <span><i class="fa fa-calendar"/> <t t-esc="room.today_booking_count"/> hoy</span>
-                                        <span t-if="room.pending_booking_count"><i class="fa fa-clock-o"/> <t t-esc="room.pending_booking_count"/> pendientes</span>
-                                    </div>
-
-                                    <div class="aq-room-next" t-if="room.next_booking_start">
-                                        <small>Siguiente reserva</small>
-                                        <strong><t t-esc="formatTime(room.next_booking_start)"/> - <t t-esc="formatTime(room.next_booking_stop)"/></strong>
-                                        <span t-esc="room.next_booking_objective || room.next_booking_name"/>
-                                    </div>
-                                    <div class="aq-room-next is-empty" t-else="">
-                                        <small>Agenda inmediata</small>
-                                        <strong>Sin reserva autorizada próxima</strong>
-                                        <span>Espacio apto para solicitud.</span>
-                                    </div>
-
-                                    <div class="aq-room-actions">
-                                        <button type="button" class="aq-primary" t-att-data-room-id="room.id" t-on-click="reserveRoomFromDataset">Reservar</button>
-                                        <button type="button" class="aq-secondary" t-if="state.selectedRoomId === room.id" t-on-click="openSelectedRoomBookings">Agenda</button>
-                                    </div>
-                                </article>
-                            </t>
-                            <t t-else="">
-                                <div class="aq-empty-state">No hay salas dadas de alta todavía.</div>
-                            </t>
+                        <div class="aq-rooms" t-if="state.rooms.length">
+                            <button t-foreach="state.rooms" t-as="room" t-key="room.id"
+                                    type="button"
+                                    t-att-data-room-id="room.id"
+                                    t-on-click="selectRoom"
+                                    t-att-class="'aq-room ' + (state.selectedRoomId === room.id ? 'is-active' : '')">
+                                <span t-att-class="'aq-dot ' + statusClass(room.availability_state)"/>
+                                <span class="aq-room-info">
+                                    <strong t-esc="room.name"/>
+                                    <small>
+                                        <t t-esc="room.capacity"/> personas
+                                        <t t-if="room.location"> · <t t-esc="room.location"/></t>
+                                    </small>
+                                </span>
+                                <span t-att-class="'aq-tag ' + statusClass(room.availability_state)" t-esc="room.availability_label"/>
+                            </button>
                         </div>
+                        <div class="aq-empty" t-else="">No hay salas registradas.</div>
                     </section>
 
-                    <section class="aq-panel aq-agenda-panel">
-                        <div class="aq-panel-header">
-                            <div>
-                                <h2 t-if="selectedRoom">Agenda de <t t-esc="selectedRoom.name"/></h2>
-                                <h2 t-else="">Agenda de sala</h2>
-                                <p>Reservas y solicitudes que afectan la disponibilidad de la sala seleccionada.</p>
-                            </div>
-                            <div class="aq-panel-actions" t-if="selectedRoom">
-                                <button type="button" class="aq-primary" t-on-click="reserveSelectedRoom">Reservar esta sala</button>
-                                <button type="button" class="aq-secondary" t-on-click="openSelectedRoomBookings">Ver calendario</button>
-                            </div>
+                    <!-- Columna: agenda de la sala seleccionada -->
+                    <section class="aq-col">
+                        <div class="aq-col-head">
+                            <h2 t-if="selectedRoom">Agenda · <t t-esc="selectedRoom.name"/></h2>
+                            <h2 t-else="">Agenda</h2>
+                            <button type="button" class="aq-btn aq-btn-ghost aq-btn-sm" t-if="selectedRoom" t-on-click="openRoomCalendar">
+                                Calendario
+                            </button>
                         </div>
 
-                        <div class="aq-selected-summary" t-if="selectedRoom">
-                            <span><i class="fa fa-map-marker"/> <t t-esc="selectedRoom.location || 'Sin ubicación'"/></span>
-                            <span><i class="fa fa-users"/> <t t-esc="selectedRoom.capacity"/> personas</span>
-                            <span t-if="selectedRoom.responsible"><i class="fa fa-user"/> <t t-esc="selectedRoom.responsible"/></span>
-                            <span t-if="selectedRoom.equipment"><i class="fa fa-desktop"/> <t t-esc="selectedRoom.equipment"/></span>
-                        </div>
-
-                        <div class="aq-booking-list aq-room-bookings">
-                            <t t-if="selectedBookings.length">
-                                <article t-foreach="selectedBookings" t-as="booking" t-key="booking.id" t-att-class="'aq-booking-row ' + bookingStateClass(booking.state)">
-                                    <div class="aq-booking-time">
-                                        <strong><t t-esc="formatTime(booking.start)"/> - <t t-esc="formatTime(booking.stop)"/></strong>
-                                        <span t-esc="formatDateTime(booking.start)"/>
-                                    </div>
-                                    <div class="aq-booking-body">
-                                        <div class="aq-booking-titleline">
-                                            <h4 t-esc="booking.objective"/>
-                                            <span t-att-class="'aq-booking-state ' + bookingStateClass(booking.state)" t-esc="booking.state_label"/>
-                                        </div>
-                                        <p><t t-esc="booking.requested_by"/> · <t t-esc="booking.participants_count"/> participantes · <t t-esc="booking.duration"/> h</p>
-                                    </div>
-                                    <div class="aq-booking-actions">
-                                        <button type="button" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
-                                        <button type="button" t-if="booking.can_open_minute" t-att-data-booking-id="booking.id" t-on-click="openMinute">Minuta</button>
-                                    </div>
-                                </article>
-                            </t>
-                            <t t-else="">
-                                <div class="aq-empty-state compact">La sala seleccionada no tiene reservas ni solicitudes en esta fecha.</div>
-                            </t>
-                        </div>
-
-                        <div class="aq-day-agenda">
-                            <div class="aq-subheader">
-                                <h3>Agenda general del día</h3>
-                                <p>Sirve para verificar que una autorización ya quedó reflejada en el dashboard.</p>
-                            </div>
-                            <div class="aq-mini-timeline">
-                                <t t-if="allDayBookings.length">
-                                    <button t-foreach="allDayBookings" t-as="booking" t-key="booking.id"
-                                            type="button"
-                                            t-att-data-room-id="booking.room_id"
-                                            t-on-click="selectRoomFromDataset"
-                                            t-att-class="'aq-mini-booking ' + bookingStateClass(booking.state) + (state.selectedRoomId === booking.room_id ? ' is-active' : '')">
-                                        <strong><t t-esc="formatTime(booking.start)"/> · <t t-esc="booking.room_name"/></strong>
-                                        <span t-esc="booking.objective"/>
-                                    </button>
-                                </t>
-                                <t t-else="">
-                                    <div class="aq-empty-state compact">No hay reservas registradas para esta fecha.</div>
-                                </t>
-                            </div>
-                        </div>
-                    </section>
-
-                    <aside class="aq-side-stack">
-                        <div class="aq-panel aq-request-card">
-                            <div class="aq-panel-header">
-                                <div>
-                                    <h2>Nueva solicitud</h2>
-                                    <p>Captura mínima para bloquear un horario sujeto a autorización.</p>
+                        <div class="aq-bookings" t-if="selectedBookings.length">
+                            <article t-foreach="selectedBookings" t-as="booking" t-key="booking.id"
+                                     t-att-class="'aq-booking ' + bookingStateClass(booking.state)">
+                                <div class="aq-booking-time">
+                                    <strong><t t-esc="formatTime(booking.start)"/></strong>
+                                    <small t-esc="formatTime(booking.stop)"/>
                                 </div>
-                            </div>
+                                <div class="aq-booking-main">
+                                    <strong t-esc="booking.objective"/>
+                                    <small><t t-esc="booking.requested_by"/> · <t t-esc="booking.duration"/> h</small>
+                                </div>
+                                <div class="aq-booking-side">
+                                    <span t-att-class="'aq-tag ' + bookingStateClass(booking.state)" t-esc="booking.state_label"/>
+                                    <div class="aq-booking-actions">
+                                        <button type="button" class="aq-btn aq-btn-sm" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
+                                        <button type="button" class="aq-btn aq-btn-sm" t-if="booking.can_open_minute" t-att-data-booking-id="booking.id" t-on-click="openMinute">Minuta</button>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                        <div class="aq-empty" t-else="">Sin reservas para esta sala en la fecha seleccionada.</div>
+                    </section>
 
-                            <div class="aq-selected-room-pill" t-if="selectedRoom">
-                                <span>Sala seleccionada</span>
-                                <strong t-esc="selectedRoom.name"/>
-                            </div>
+                    <!-- Columna: nueva solicitud + pendientes -->
+                    <aside class="aq-col">
+                        <div class="aq-col-head">
+                            <h2>Nueva solicitud</h2>
+                        </div>
 
-                            <div class="aq-form-grid">
-                                <label class="aq-full">
-                                    <span>Sala</span>
-                                    <select t-att-value="state.selectedRoomId || ''" t-on-change="onRoomSelect">
-                                        <option value="">Selecciona una sala...</option>
-                                        <option t-foreach="state.rooms" t-as="room" t-key="room.id" t-att-value="room.id" t-att-selected="state.selectedRoomId === room.id">
-                                            <t t-esc="room.name"/>
-                                        </option>
-                                    </select>
-                                </label>
-                                <label>
+                        <div class="aq-form">
+                            <label class="aq-field">
+                                <span>Sala</span>
+                                <select t-att-value="state.selectedRoomId || ''" t-on-change="onRoomSelect">
+                                    <option value="">Selecciona…</option>
+                                    <option t-foreach="state.rooms" t-as="room" t-key="room.id" t-att-value="room.id" t-att-selected="state.selectedRoomId === room.id">
+                                        <t t-esc="room.name"/>
+                                    </option>
+                                </select>
+                            </label>
+                            <div class="aq-field-row">
+                                <label class="aq-field">
                                     <span>Inicio</span>
                                     <input type="datetime-local" t-model="state.form.start"/>
                                 </label>
-                                <label>
+                                <label class="aq-field">
                                     <span>Fin</span>
                                     <input type="datetime-local" t-model="state.form.stop"/>
                                 </label>
-                                <label class="aq-full">
-                                    <span>Objetivo</span>
-                                    <input type="text" t-model="state.form.objective" placeholder="Ej. Revisión semanal de operaciones"/>
-                                </label>
-                                <label class="aq-full">
-                                    <span>Agenda rápida</span>
-                                    <textarea t-model="state.form.agenda" placeholder="Puntos a revisar, contexto o notas preliminares."/>
-                                </label>
                             </div>
+                            <label class="aq-field">
+                                <span>Objetivo</span>
+                                <input type="text" t-model="state.form.objective" placeholder="Ej. Revisión semanal"/>
+                            </label>
+                            <label class="aq-field">
+                                <span>Agenda</span>
+                                <textarea t-model="state.form.agenda" placeholder="Puntos a tratar (opcional)"/>
+                            </label>
 
-                            <div class="aq-warning" t-if="hasInvalidSlot">
-                                La hora de fin debe ser mayor que la hora de inicio.
-                            </div>
-
-                            <div class="aq-conflict-box" t-if="quickConflicts.length">
-                                <strong>Horario no disponible</strong>
-                                <span>El rango seleccionado cruza con:</span>
+                            <p class="aq-alert" t-if="hasInvalidSlot">La hora de fin debe ser mayor que la de inicio.</p>
+                            <div class="aq-alert aq-alert-warn" t-if="quickConflicts.length">
+                                <strong>Horario ocupado</strong>
                                 <ul>
                                     <li t-foreach="quickConflicts" t-as="booking" t-key="booking.id">
-                                        <t t-esc="formatTime(booking.start)"/> - <t t-esc="formatTime(booking.stop)"/> · <t t-esc="booking.objective"/>
+                                        <t t-esc="formatTime(booking.start)"/>–<t t-esc="formatTime(booking.stop)"/> · <t t-esc="booking.objective"/>
                                     </li>
                                 </ul>
                             </div>
 
-                            <div class="aq-actions">
-                                <button type="button" class="aq-primary" t-att-disabled="!state.selectedRoomId || hasInvalidSlot || quickConflicts.length" t-on-click="createQuickRequest">
+                            <div class="aq-form-actions">
+                                <button type="button" class="aq-btn aq-btn-primary"
+                                        t-att-disabled="!state.selectedRoomId || hasInvalidSlot || quickConflicts.length"
+                                        t-on-click="createQuickRequest">
                                     Enviar solicitud
                                 </button>
-                                <button type="button" class="aq-secondary" t-on-click="openFullRequestForm">Formulario completo</button>
+                                <button type="button" class="aq-btn aq-btn-ghost" t-on-click="openFullRequestForm">Formulario completo</button>
                             </div>
-                            <p class="aq-hint">Usa el formulario completo cuando necesites participantes o notas internas desde el inicio.</p>
                         </div>
 
-                        <div class="aq-panel aq-pending-card">
-                            <div class="aq-panel-header">
-                                <div>
-                                    <h2 t-if="state.canApprove">Pendientes por autorizar</h2>
-                                    <h2 t-else="">Tus solicitudes pendientes</h2>
-                                    <p>Acciones rápidas sin abandonar el dashboard.</p>
-                                </div>
-                            </div>
-                            <t t-if="state.pendingBookings.length">
-                                <article t-foreach="state.pendingBookings" t-as="booking" t-key="booking.id" class="aq-pending-row">
-                                    <div>
-                                        <strong t-esc="booking.objective"/>
-                                        <span><t t-esc="booking.room_name"/> · <t t-esc="formatTime(booking.start)"/> - <t t-esc="formatTime(booking.stop)"/></span>
-                                    </div>
-                                    <div class="aq-pending-actions">
-                                        <button type="button" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
-                                        <button type="button" class="aq-approve" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="approveBooking">Autorizar</button>
-                                        <button type="button" class="aq-reject" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="rejectBooking">Rechazar</button>
-                                    </div>
-                                </article>
-                            </t>
-                            <t t-else="">
-                                <div class="aq-empty-state compact">No hay solicitudes pendientes.</div>
-                            </t>
+                        <div class="aq-col-head aq-mt">
+                            <h2 t-if="state.canApprove">Pendientes por autorizar</h2>
+                            <h2 t-else="">Mis solicitudes pendientes</h2>
                         </div>
 
-                        <div class="aq-panel aq-my-card" t-if="state.myOpenBookings.length">
-                            <div class="aq-panel-header">
-                                <div>
-                                    <h2>Mis próximas solicitudes</h2>
-                                    <p>Seguimiento rápido de tus reservas abiertas.</p>
-                                </div>
-                            </div>
-                            <article t-foreach="state.myOpenBookings" t-as="booking" t-key="booking.id" t-att-class="'aq-my-row ' + bookingStateClass(booking.state)">
-                                <div>
+                        <div class="aq-pending" t-if="state.pendingBookings.length">
+                            <article t-foreach="state.pendingBookings" t-as="booking" t-key="booking.id" class="aq-pending-row">
+                                <div class="aq-pending-info">
                                     <strong t-esc="booking.objective"/>
-                                    <span><t t-esc="booking.room_name"/> · <t t-esc="formatDateTime(booking.start)"/></span>
+                                    <small><t t-esc="booking.room_name"/> · <t t-esc="formatTime(booking.start)"/>–<t t-esc="formatTime(booking.stop)"/></small>
                                 </div>
-                                <button type="button" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
+                                <div class="aq-pending-actions">
+                                    <button type="button" class="aq-btn aq-btn-sm" t-att-data-booking-id="booking.id" t-on-click="openBooking">Abrir</button>
+                                    <button type="button" class="aq-btn aq-btn-sm aq-btn-primary" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="approveBooking">Autorizar</button>
+                                    <button type="button" class="aq-btn aq-btn-sm aq-btn-danger" t-if="state.canApprove" t-att-data-booking-id="booking.id" t-on-click="rejectBooking">Rechazar</button>
+                                </div>
                             </article>
                         </div>
+                        <div class="aq-empty" t-else="">No hay solicitudes pendientes.</div>
                     </aside>
-                </main>
+
+                </div>
             </t>
         </div>
     </t>
