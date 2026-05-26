@@ -1,16 +1,20 @@
-.o_aq_meeting_dashboard {
+.o_aq_rooms {
+    --aq-bg: #f6f6f4;
+    --aq-surface: #ffffff;
+    --aq-border: #e4e4e0;
+    --aq-text: #1a1a18;
+    --aq-muted: #75756f;
+    --aq-accent: #111111;
+    --aq-free: #1f8f58;
+    --aq-busy: #b63d3d;
+    --aq-soon: #b7841e;
+
     height: 100%;
-    max-height: 100%;
-    min-height: 0;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 22px;
-    background:
-        radial-gradient(circle at 12% 8%, rgba(0, 0, 0, 0.055), transparent 30%),
-        radial-gradient(circle at 88% 0%, rgba(0, 0, 0, 0.035), transparent 28%),
-        linear-gradient(180deg, #f7f7f5 0%, #eeeeea 100%);
-    color: #151515;
-    scrollbar-gutter: stable;
+    padding: 20px;
+    background: var(--aq-bg);
+    color: var(--aq-text);
+    font-size: 13px;
 
     *,
     *::before,
@@ -20,633 +24,412 @@
 
     h1,
     h2,
-    h3,
-    h4,
-    p {
+    p,
+    ul {
         margin: 0;
     }
 
-    .aq-hero {
+    /* --- Encabezado --- */
+    .aq-head {
         display: flex;
+        align-items: flex-end;
         justify-content: space-between;
-        gap: 18px;
-        align-items: stretch;
+        gap: 16px;
+        flex-wrap: wrap;
         margin-bottom: 16px;
-        padding: 22px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.06);
-        backdrop-filter: blur(14px);
     }
 
-    .aq-eyebrow {
-        margin: 0 0 4px;
-        color: #6a6a65;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
+    .aq-head-title h1 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
     }
 
-    h1 {
-        font-size: clamp(28px, 3vw, 42px);
-        font-weight: 850;
-        letter-spacing: -0.045em;
-        line-height: 1;
+    .aq-head-title p {
+        margin-top: 2px;
+        color: var(--aq-muted);
+        font-size: 12.5px;
     }
 
-    .aq-hero-copy {
-        max-width: 760px;
-        margin-top: 8px;
-        color: #62625d;
-        font-size: 14px;
-        line-height: 1.45;
-    }
-
-    .aq-hero-actions {
+    .aq-head-tools {
         display: flex;
-        align-items: stretch;
+        align-items: flex-end;
         gap: 10px;
-        min-width: 320px;
     }
 
-    .aq-date-control {
-        flex: 1;
-        min-width: 210px;
-        padding: 13px;
-        border-radius: 20px;
-        background: #111;
-        color: #fff;
+    .aq-date {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 8px;
+        gap: 4px;
 
-        label {
+        span {
+            color: var(--aq-muted);
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            opacity: 0.68;
+            font-weight: 600;
         }
 
         input {
-            border: 0;
-            border-radius: 14px;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.11);
-            color: #fff;
+            border: 1px solid var(--aq-border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            background: var(--aq-surface);
+            color: var(--aq-text);
             outline: none;
         }
     }
 
-    .aq-kpis {
+    /* --- Indicadores --- */
+    .aq-stats {
         display: grid;
-        grid-template-columns: repeat(5, minmax(145px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
         margin-bottom: 16px;
     }
 
-    .aq-kpi-card,
-    .aq-panel {
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.05);
-        backdrop-filter: blur(14px);
-    }
-
-    .aq-kpi-card {
-        min-height: 92px;
-        border-radius: 22px;
-        padding: 16px;
+    .aq-stat {
+        padding: 12px 14px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
 
         span {
             display: block;
-            min-height: 28px;
-            color: #666660;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        strong {
-            display: block;
-            margin-top: 8px;
-            font-size: 30px;
-            line-height: 1;
-            letter-spacing: -0.04em;
-        }
-    }
-
-    .aq-main-grid {
-        display: grid;
-        grid-template-columns: minmax(300px, 0.88fr) minmax(420px, 1.25fr) minmax(340px, 0.9fr);
-        gap: 16px;
-        align-items: start;
-        min-width: 0;
-    }
-
-    .aq-side-stack {
-        display: grid;
-        gap: 16px;
-        min-width: 0;
-    }
-
-    .aq-panel {
-        min-width: 0;
-        border-radius: 28px;
-        padding: 17px;
-    }
-
-    .aq-request-card {
-        position: sticky;
-        top: 14px;
-        z-index: 2;
-    }
-
-    .aq-panel-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 14px;
-
-        h2 {
-            font-size: 18px;
-            font-weight: 850;
-            letter-spacing: -0.02em;
-        }
-
-        h3 {
-            font-size: 15px;
-            font-weight: 850;
-            letter-spacing: -0.02em;
-        }
-
-        p {
-            margin-top: 3px;
-            color: #6b6b66;
-            font-size: 12px;
-            line-height: 1.35;
-        }
-    }
-
-    .aq-panel-actions,
-    .aq-room-actions,
-    .aq-actions,
-    .aq-pending-actions,
-    .aq-booking-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .aq-panel-actions {
-        justify-content: flex-end;
-    }
-
-    .aq-room-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .aq-room-card {
-        position: relative;
-        cursor: pointer;
-        padding: 15px;
-        border-radius: 24px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: linear-gradient(180deg, #fff, #f8f8f6);
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-
-        &:hover,
-        &.is-active {
-            transform: translateY(-2px);
-            border-color: rgba(0, 0, 0, 0.26);
-            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.10);
-        }
-
-        &.is-active::before {
-            content: "";
-            position: absolute;
-            inset: 11px auto 11px 0;
-            width: 4px;
-            border-radius: 999px;
-            background: #111;
-        }
-
-        h3 {
-            margin-top: 14px;
-            font-size: 19px;
-            font-weight: 850;
-            letter-spacing: -0.03em;
-            line-height: 1.05;
-        }
-
-        p {
-            margin-top: 5px;
-            min-height: 18px;
-            color: #64645f;
-            font-size: 12px;
-        }
-    }
-
-    .aq-room-topline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .aq-room-code {
-        padding: 5px 9px;
-        border-radius: 999px;
-        background: #eeeeea;
-        color: #595954;
-        font-size: 10px;
-        font-weight: 850;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .aq-state-badge,
-    .aq-booking-state {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 25px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        color: #fff;
-        font-size: 10.5px;
-        font-weight: 850;
-        white-space: nowrap;
-    }
-
-    .aq-state-badge.is-free {
-        background: #1f8f58;
-    }
-
-    .aq-state-badge.is-busy {
-        background: #b63d3d;
-    }
-
-    .aq-state-badge.is-soon {
-        background: #b7841e;
-    }
-
-    .aq-room-meta {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 7px;
-        margin-top: 13px;
-
-        span {
-            padding: 6px 8px;
-            border-radius: 12px;
-            background: #f0f0ed;
-            color: #585853;
-            font-size: 11px;
-            font-weight: 700;
-        }
-    }
-
-    .aq-room-next {
-        display: grid;
-        gap: 3px;
-        margin-top: 13px;
-        padding: 12px;
-        border-radius: 16px;
-        background: #f5f5f2;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-
-        small {
-            color: #75756f;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        strong {
-            font-size: 13px;
-            font-weight: 850;
-        }
-
-        span {
-            color: #5d5d58;
+            color: var(--aq-muted);
             font-size: 11.5px;
-            line-height: 1.25;
+            font-weight: 600;
         }
 
-        &.is-empty {
-            background: #fbfbfa;
+        strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
     }
 
-    .aq-room-actions {
-        justify-content: space-between;
-        margin-top: 12px;
+    /* --- Layout principal --- */
+    .aq-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr 0.95fr;
+        gap: 14px;
+        align-items: start;
     }
 
-    .aq-selected-summary {
+    .aq-col {
+        border: 1px solid var(--aq-border);
+        border-radius: 12px;
+        background: var(--aq-surface);
+        padding: 14px;
+    }
+
+    .aq-col-head {
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
         gap: 8px;
         margin-bottom: 12px;
 
-        span {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            max-width: 100%;
-            padding: 7px 9px;
-            border-radius: 13px;
-            background: #f0f0ed;
-            color: #555550;
-            font-size: 11.5px;
+        h2 {
+            font-size: 14px;
             font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        small {
+            color: var(--aq-muted);
+            font-size: 11.5px;
+        }
+
+        &.aq-mt {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid var(--aq-border);
         }
     }
 
-    .aq-booking-list {
+    /* --- Lista de salas --- */
+    .aq-rooms {
         display: grid;
-        gap: 10px;
+        gap: 8px;
     }
 
-    .aq-booking-row,
-    .aq-pending-row,
-    .aq-my-row {
+    .aq-room {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        padding: 11px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+
+        &:hover {
+            border-color: #c9c9c4;
+        }
+
+        &.is-active {
+            border-color: var(--aq-accent);
+            background: #fafafa;
+        }
+    }
+
+    .aq-room-info {
+        flex: 1;
+        min-width: 0;
+
+        strong {
+            display: block;
+            overflow: hidden;
+            font-size: 13.5px;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11.5px;
+        }
+    }
+
+    .aq-dot {
+        flex: 0 0 auto;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #c4c4be;
+
+        &.is-free { background: var(--aq-free); }
+        &.is-busy { background: var(--aq-busy); }
+        &.is-soon { background: var(--aq-soon); }
+    }
+
+    /* --- Etiquetas de estado --- */
+    .aq-tag {
+        flex: 0 0 auto;
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--aq-border);
+        color: var(--aq-muted);
+        font-size: 10.5px;
+        font-weight: 650;
+        white-space: nowrap;
+
+        &.is-free { border-color: rgba(31, 143, 88, 0.4); color: var(--aq-free); }
+        &.is-busy { border-color: rgba(182, 61, 61, 0.4); color: var(--aq-busy); }
+        &.is-soon { border-color: rgba(183, 132, 30, 0.4); color: var(--aq-soon); }
+        &.is-approved { border-color: rgba(31, 143, 88, 0.4); color: var(--aq-free); }
+        &.is-pending { border-color: rgba(183, 132, 30, 0.4); color: var(--aq-soon); }
+        &.is-done,
+        &.is-muted { color: var(--aq-muted); }
+    }
+
+    /* --- Reservas (agenda) --- */
+    .aq-bookings {
         display: grid;
+        gap: 8px;
+    }
+
+    .aq-booking {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
         gap: 12px;
         align-items: center;
-        padding: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 18px;
-        background: #fbfbfa;
-    }
+        padding: 11px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+        border-left: 3px solid var(--aq-border);
 
-    .aq-booking-row {
-        grid-template-columns: 118px minmax(0, 1fr) auto;
-    }
-
-    .aq-booking-row.is-approved {
-        border-color: rgba(31, 143, 88, 0.24);
-    }
-
-    .aq-booking-row.is-pending {
-        border-color: rgba(183, 132, 30, 0.28);
+        &.is-approved { border-left-color: var(--aq-free); }
+        &.is-pending { border-left-color: var(--aq-soon); }
+        &.is-done,
+        &.is-muted { border-left-color: #c4c4be; }
     }
 
     .aq-booking-time {
-        display: grid;
-        gap: 3px;
-
-        strong,
-        span {
-            font-size: 11px;
-        }
+        text-align: center;
 
         strong {
-            font-weight: 850;
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
         }
 
-        span {
-            color: #6b6b66;
+        small {
+            color: var(--aq-muted);
+            font-size: 11px;
         }
     }
 
-    .aq-booking-body {
+    .aq-booking-main {
         min-width: 0;
 
-        h4 {
+        strong {
+            display: block;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
             font-size: 13px;
-            font-weight: 850;
-        }
-
-        p {
-            margin-top: 4px;
-            color: #666660;
-            font-size: 11px;
-        }
-    }
-
-    .aq-booking-titleline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .aq-booking-state.is-approved {
-        background: #1f8f58;
-    }
-
-    .aq-booking-state.is-pending {
-        background: #b7841e;
-    }
-
-    .aq-booking-state.is-done {
-        background: #555;
-    }
-
-    .aq-booking-state.is-muted {
-        background: #999;
-    }
-
-    .aq-day-agenda {
-        margin-top: 18px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-    }
-
-    .aq-subheader {
-        margin-bottom: 10px;
-
-        h3 {
-            font-size: 15px;
-            font-weight: 850;
-        }
-
-        p {
-            margin-top: 3px;
-            color: #6b6b66;
-            font-size: 11.5px;
-        }
-    }
-
-    .aq-mini-timeline {
-        display: grid;
-        gap: 8px;
-    }
-
-    .aq-mini-booking {
-        display: grid;
-        gap: 3px;
-        width: 100%;
-        text-align: left;
-        border-radius: 15px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: #fbfbfa;
-        color: #222;
-        padding: 10px 11px;
-
-        strong {
-            font-size: 11.5px;
-        }
-
-        span {
-            overflow: hidden;
-            color: #62625d;
-            font-size: 11px;
+            font-weight: 650;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        &.is-active {
-            border-color: #111;
-            box-shadow: inset 0 0 0 1px #111;
-        }
-
-        &.is-approved {
-            background: #f2f8f4;
-        }
-
-        &.is-pending {
-            background: #fbf6eb;
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11.5px;
         }
     }
 
-    .aq-selected-room-pill {
+    .aq-booking-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .aq-booking-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    /* --- Formulario --- */
+    .aq-form {
         display: grid;
-        gap: 2px;
-        margin-bottom: 12px;
-        padding: 11px 12px;
-        border-radius: 18px;
-        background: #111;
-        color: #fff;
-
-        span {
-            opacity: 0.68;
-            font-size: 10px;
-            font-weight: 850;
-            letter-spacing: 0.09em;
-            text-transform: uppercase;
-        }
-
-        strong {
-            font-size: 15px;
-            font-weight: 850;
-        }
+        gap: 11px;
     }
 
-    .aq-form-grid {
+    .aq-field-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 11px;
+    }
 
-        label {
-            display: grid;
-            gap: 6px;
-
-            &.aq-full {
-                grid-column: 1 / -1;
-            }
-        }
+    .aq-field {
+        display: grid;
+        gap: 5px;
 
         span {
-            color: #565650;
+            color: var(--aq-muted);
             font-size: 11px;
-            font-weight: 850;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            font-weight: 600;
         }
 
         input,
-        textarea,
-        select {
+        select,
+        textarea {
             width: 100%;
             min-width: 0;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            border-radius: 14px;
-            padding: 10px 12px;
-            background: #fff;
-            color: #171717;
+            border: 1px solid var(--aq-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: var(--aq-surface);
+            color: var(--aq-text);
             outline: none;
 
             &:focus {
-                border-color: #111;
-                box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+                border-color: var(--aq-accent);
             }
         }
 
         textarea {
-            min-height: 78px;
+            min-height: 64px;
             resize: vertical;
         }
     }
 
-    .aq-warning,
-    .aq-conflict-box {
-        margin-top: 11px;
-        border-radius: 16px;
-        padding: 11px 12px;
-        font-size: 12px;
-        line-height: 1.35;
+    .aq-form-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
     }
 
-    .aq-warning {
-        border: 1px solid rgba(182, 61, 61, 0.22);
+    /* --- Alertas --- */
+    .aq-alert {
+        margin: 0;
+        padding: 9px 11px;
+        border-radius: 8px;
+        font-size: 11.5px;
         background: #f8eeee;
+        border: 1px solid rgba(182, 61, 61, 0.25);
         color: #8b2f2f;
-        font-weight: 750;
+
+        &.aq-alert-warn {
+            background: #fbf6eb;
+            border-color: rgba(183, 132, 30, 0.25);
+            color: #6d4a0d;
+
+            ul {
+                margin: 4px 0 0;
+                padding-left: 16px;
+            }
+        }
     }
 
-    .aq-conflict-box {
+    /* --- Pendientes --- */
+    .aq-pending {
         display: grid;
-        gap: 5px;
-        border: 1px solid rgba(183, 132, 30, 0.25);
-        background: #fbf6eb;
-        color: #6d4a0d;
+        gap: 8px;
+    }
+
+    .aq-pending-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--aq-border);
+        border-radius: 10px;
+        background: var(--aq-surface);
+    }
+
+    .aq-pending-info {
+        min-width: 0;
 
         strong {
+            display: block;
+            overflow: hidden;
             font-size: 12.5px;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        span,
-        li {
-            font-size: 11.5px;
-        }
-
-        ul {
-            margin: 0;
-            padding-left: 18px;
+        small {
+            display: block;
+            margin-top: 2px;
+            color: var(--aq-muted);
+            font-size: 11px;
         }
     }
 
-    .aq-actions {
-        justify-content: flex-end;
-        margin-top: 13px;
+    .aq-pending-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
     }
 
-    button {
-        border: 0;
-        border-radius: 999px;
-        padding: 8px 13px;
+    /* --- Botones --- */
+    .aq-btn {
+        border: 1px solid var(--aq-border);
+        border-radius: 8px;
+        padding: 7px 13px;
+        background: var(--aq-surface);
+        color: var(--aq-text);
         font-size: 12px;
-        font-weight: 850;
-        line-height: 1;
-        transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.14s ease, opacity 0.14s ease;
 
         &:hover:not(:disabled) {
-            transform: translateY(-1px);
+            background: #f0f0ed;
         }
 
         &:disabled {
@@ -655,138 +438,76 @@
         }
     }
 
-    .aq-primary,
-    .aq-approve {
-        background: #111;
+    .aq-btn-sm {
+        padding: 5px 10px;
+        font-size: 11.5px;
+    }
+
+    .aq-btn-primary {
+        background: var(--aq-accent);
+        border-color: var(--aq-accent);
         color: #fff;
-    }
 
-    .aq-secondary,
-    .aq-booking-actions button,
-    .aq-pending-actions button,
-    .aq-my-row button {
-        background: #ededeb;
-        color: #1d1d1b;
-    }
-
-    .aq-refresh {
-        align-self: stretch;
-        min-width: 118px;
-    }
-
-    .aq-reject {
-        background: #f1dfdf !important;
-        color: #8b2f2f !important;
-    }
-
-    .aq-hint {
-        margin-top: 10px;
-        color: #74746f;
-        font-size: 11px;
-    }
-
-    .aq-pending-row,
-    .aq-my-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-
-        strong {
-            display: block;
-            min-width: 0;
-            overflow: hidden;
-            font-size: 13px;
-            font-weight: 850;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        span {
-            display: block;
-            margin-top: 3px;
-            color: #666660;
-            font-size: 11px;
+        &:hover:not(:disabled) {
+            background: #000;
         }
     }
 
-    .aq-empty-state,
-    .aq-loading {
-        padding: 28px;
-        border-radius: 22px;
-        border: 1px dashed rgba(0, 0, 0, 0.16);
-        color: #666660;
-        background: rgba(255, 255, 255, 0.56);
+    .aq-btn-ghost {
+        background: transparent;
+    }
+
+    .aq-btn-danger {
+        background: #f1dfdf;
+        border-color: rgba(182, 61, 61, 0.3);
+        color: #8b2f2f;
+
+        &:hover:not(:disabled) {
+            background: #ecd2d2;
+        }
+    }
+
+    /* --- Vacío / carga --- */
+    .aq-empty {
+        padding: 22px;
+        border: 1px dashed var(--aq-border);
+        border-radius: 10px;
+        color: var(--aq-muted);
         text-align: center;
-        font-weight: 750;
-
-        &.compact {
-            padding: 17px;
-            font-size: 12px;
-        }
+        font-size: 12px;
     }
 
-    @media (max-width: 1460px) {
-        .aq-main-grid {
-            grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.25fr);
+    /* --- Responsivo --- */
+    @media (max-width: 1200px) {
+        .aq-grid {
+            grid-template-columns: 1fr 1fr;
         }
 
-        .aq-side-stack {
+        .aq-grid > .aq-col:last-child {
             grid-column: 1 / -1;
-            grid-template-columns: minmax(360px, 1fr) minmax(340px, 1fr);
-            align-items: start;
-        }
-    }
-
-    @media (max-width: 1180px) {
-        .aq-kpis {
-            grid-template-columns: repeat(3, minmax(150px, 1fr));
-        }
-
-        .aq-main-grid,
-        .aq-side-stack {
-            grid-template-columns: 1fr;
-        }
-
-        .aq-request-card {
-            position: static;
         }
     }
 
     @media (max-width: 720px) {
         padding: 14px;
 
-        .aq-hero,
-        .aq-hero-actions,
-        .aq-kpis,
-        .aq-form-grid {
+        .aq-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .aq-grid {
             grid-template-columns: 1fr;
         }
 
-        .aq-hero {
-            flex-direction: column;
+        .aq-booking {
+            grid-template-columns: 50px 1fr;
         }
 
-        .aq-hero-actions {
-            min-width: 0;
-            flex-direction: column;
-        }
-
-        .aq-date-control {
-            min-width: 0;
-        }
-
-        .aq-booking-row,
-        .aq-pending-row,
-        .aq-my-row {
-            grid-template-columns: 1fr;
-        }
-
-        .aq-booking-titleline,
-        .aq-panel-header {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-
-        .aq-panel-actions {
-            justify-content: flex-start;
+        .aq-booking-side {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
         }
     }
 }

@@ -14,44 +14,34 @@ class AqMeetingRoomsDashboard extends Component {
             rooms: [],
             bookings: [],
             pendingBookings: [],
-            myOpenBookings: [],
             selectedRoomId: false,
             canApprove: false,
-            filters: {
-                date: this._today(),
-            },
+            date: this._today(),
             form: {
-                start: this._defaultStart(),
-                stop: this._defaultStop(),
+                start: this._defaultTime(1),
+                stop: this._defaultTime(2),
                 objective: '',
                 agenda: '',
             },
         });
-        onWillStart(async () => {
-            await this.loadDashboard();
-        });
+        onWillStart(() => this.loadDashboard());
+    }
+
+    // --- Helpers de fecha ---------------------------------------------------
+
+    _pad(value) {
+        return String(value).padStart(2, '0');
     }
 
     _today() {
         return new Date().toISOString().slice(0, 10);
     }
 
-    _pad(value) {
-        return String(value).padStart(2, '0');
-    }
-
-    _defaultStart() {
-        const date = new Date();
-        date.setMinutes(0, 0, 0);
-        date.setHours(date.getHours() + 1);
-        return `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}T${this._pad(date.getHours())}:00`;
-    }
-
-    _defaultStop() {
-        const date = new Date();
-        date.setMinutes(0, 0, 0);
-        date.setHours(date.getHours() + 2);
-        return `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}T${this._pad(date.getHours())}:00`;
+    _defaultTime(offsetHours) {
+        const d = new Date();
+        d.setMinutes(0, 0, 0);
+        d.setHours(d.getHours() + offsetHours);
+        return `${d.getFullYear()}-${this._pad(d.getMonth() + 1)}-${this._pad(d.getDate())}T${this._pad(d.getHours())}:00`;
     }
 
     _normalizeDatetime(value) {
@@ -59,27 +49,14 @@ class AqMeetingRoomsDashboard extends Component {
             return false;
         }
         const normalized = value.replace('T', ' ');
-        if (normalized.length === 16) {
-            return `${normalized}:00`;
-        }
-        return normalized;
+        return normalized.length === 16 ? `${normalized}:00` : normalized;
     }
 
     _dateFromDatetime(value) {
-        if (!value || value.length < 10) {
-            return false;
-        }
-        return value.slice(0, 10);
+        return value && value.length >= 10 ? value.slice(0, 10) : false;
     }
 
-    _timeFromDatetime(value) {
-        if (!value || value.length < 16) {
-            return '—';
-        }
-        return value.slice(11, 16);
-    }
-
-    _setFormDate(dateValue) {
+    _syncFormDate(dateValue) {
         if (!dateValue) {
             return;
         }
@@ -89,58 +66,47 @@ class AqMeetingRoomsDashboard extends Component {
         this.state.form.stop = `${dateValue}T${stopTime}`;
     }
 
+    formatTime(value) {
+        return value && value.length >= 16 ? value.slice(11, 16) : '—';
+    }
+
     _errorMessage(error, fallback) {
-        if (error && error.data && error.data.message) {
-            return error.data.message;
-        }
-        if (error && error.message) {
-            return error.message;
-        }
-        return fallback;
+        return (error && error.data && error.data.message) || (error && error.message) || fallback;
     }
 
     _findBookingById(bookingId) {
         return (
-            this.state.bookings.find((booking) => booking.id === bookingId) ||
-            this.state.pendingBookings.find((booking) => booking.id === bookingId) ||
-            this.state.myOpenBookings.find((booking) => booking.id === bookingId) ||
+            this.state.bookings.find((b) => b.id === bookingId) ||
+            this.state.pendingBookings.find((b) => b.id === bookingId) ||
             false
         );
     }
 
-    _scrollToRequestCard() {
-        window.setTimeout(() => {
-            const requestCard = document.querySelector('.o_aq_meeting_dashboard .aq-request-card');
-            if (requestCard) {
-                requestCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 0);
-    }
+    // --- Carga --------------------------------------------------------------
 
     async loadDashboard(options = {}) {
         this.state.loading = true;
         try {
-            const date = this.state.filters.date || this._today();
-            const dateFrom = `${date} 00:00:00`;
-            const dateTo = `${date} 23:59:59`;
-            const preferredRoomId = options.preferredRoomId || this.state.selectedRoomId || false;
-            const data = await this.orm.call('aq.meeting.room', 'get_dashboard_data', [dateFrom, dateTo]);
+            const date = this.state.date || this._today();
+            const data = await this.orm.call('aq.meeting.room', 'get_dashboard_data', [
+                `${date} 00:00:00`,
+                `${date} 23:59:59`,
+            ]);
 
             this.state.rooms = data.rooms || [];
             this.state.bookings = data.bookings || [];
             this.state.pendingBookings = data.pending_bookings || [];
-            this.state.myOpenBookings = data.my_open_bookings || [];
             this.state.canApprove = Boolean(data.can_approve);
 
-            if (preferredRoomId && this.state.rooms.some((room) => room.id === Number(preferredRoomId))) {
-                this.state.selectedRoomId = Number(preferredRoomId);
-            } else if (!this.state.selectedRoomId && this.state.rooms.length) {
-                this.state.selectedRoomId = this.state.rooms[0].id;
-            } else if (this.state.selectedRoomId && !this.state.rooms.some((room) => room.id === this.state.selectedRoomId)) {
-                this.state.selectedRoomId = this.state.rooms.length ? this.state.rooms[0].id : false;
+            const preferred = options.preferredRoomId || this.state.selectedRoomId;
+            const ids = this.state.rooms.map((r) => r.id);
+            if (preferred && ids.includes(Number(preferred))) {
+                this.state.selectedRoomId = Number(preferred);
+            } else if (!ids.includes(this.state.selectedRoomId)) {
+                this.state.selectedRoomId = ids.length ? ids[0] : false;
             }
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible cargar el dashboard de salas.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible cargar el dashboard.'), { type: 'danger' });
         } finally {
             this.state.loading = false;
         }
@@ -150,31 +116,31 @@ class AqMeetingRoomsDashboard extends Component {
         await this.loadDashboard();
     }
 
+    async onDateChange(ev) {
+        this.state.date = ev.currentTarget.value || this._today();
+        this._syncFormDate(this.state.date);
+        await this.loadDashboard();
+    }
+
+    // --- Derivados ----------------------------------------------------------
+
     get selectedRoom() {
-        return this.state.rooms.find((room) => room.id === this.state.selectedRoomId) || false;
+        return this.state.rooms.find((r) => r.id === this.state.selectedRoomId) || false;
     }
 
     get selectedBookings() {
         if (!this.state.selectedRoomId) {
             return [];
         }
-        return this.state.bookings.filter((booking) => booking.room_id === this.state.selectedRoomId);
+        return this.state.bookings.filter((b) => b.room_id === this.state.selectedRoomId);
     }
 
-    get allDayBookings() {
-        return this.state.bookings || [];
-    }
-
-    get availableRoomsCount() {
-        return this.state.rooms.filter((room) => room.availability_state === 'free').length;
+    get freeRoomsCount() {
+        return this.state.rooms.filter((r) => r.availability_state === 'free').length;
     }
 
     get busyRoomsCount() {
-        return this.state.rooms.filter((room) => room.availability_state === 'busy').length;
-    }
-
-    get approvedBookingsCount() {
-        return this.state.bookings.filter((booking) => booking.state === 'approved').length;
+        return this.state.rooms.filter((r) => r.availability_state === 'busy').length;
     }
 
     get hasInvalidSlot() {
@@ -189,94 +155,52 @@ class AqMeetingRoomsDashboard extends Component {
         if (!this.state.selectedRoomId || !start || !stop || start >= stop) {
             return [];
         }
-        return this.state.bookings.filter((booking) => {
-            return (
-                booking.room_id === this.state.selectedRoomId &&
-                ['pending', 'approved'].includes(booking.state) &&
-                booking.start < stop &&
-                booking.stop > start
-            );
-        });
+        return this.state.bookings.filter(
+            (b) =>
+                b.room_id === this.state.selectedRoomId &&
+                ['pending', 'approved'].includes(b.state) &&
+                b.start < stop &&
+                b.stop > start
+        );
     }
 
-    selectRoomFromDataset(ev) {
+    statusClass(value) {
+        return { free: 'is-free', busy: 'is-busy', soon: 'is-soon' }[value] || '';
+    }
+
+    bookingStateClass(value) {
+        return (
+            {
+                approved: 'is-approved',
+                pending: 'is-pending',
+                done: 'is-done',
+                cancelled: 'is-muted',
+                rejected: 'is-muted',
+            }[value] || ''
+        );
+    }
+
+    // --- Interacciones ------------------------------------------------------
+
+    selectRoom(ev) {
         this.state.selectedRoomId = Number(ev.currentTarget.dataset.roomId);
-    }
-
-    reserveRoomFromDataset(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        this.state.selectedRoomId = Number(ev.currentTarget.dataset.roomId);
-        this._setFormDate(this.state.filters.date);
-        this._scrollToRequestCard();
-    }
-
-    reserveSelectedRoom() {
-        this._setFormDate(this.state.filters.date);
-        this._scrollToRequestCard();
     }
 
     onRoomSelect(ev) {
         this.state.selectedRoomId = Number(ev.currentTarget.value) || false;
     }
 
-    async onDateChange(ev) {
-        this.state.filters.date = ev.currentTarget.value || this._today();
-        this._setFormDate(this.state.filters.date);
-        await this.loadDashboard();
-    }
-
-    formatDateTime(value) {
-        if (!value) {
-            return '—';
-        }
-        return value.replace(' ', ' · ').slice(0, 18);
-    }
-
-    formatTime(value) {
-        return this._timeFromDatetime(value);
-    }
-
-    statusClass(value) {
-        if (value === 'free') {
-            return 'is-free';
-        }
-        if (value === 'busy') {
-            return 'is-busy';
-        }
-        if (value === 'soon') {
-            return 'is-soon';
-        }
-        return '';
-    }
-
-    bookingStateClass(value) {
-        if (value === 'approved') {
-            return 'is-approved';
-        }
-        if (value === 'pending') {
-            return 'is-pending';
-        }
-        if (value === 'done') {
-            return 'is-done';
-        }
-        if (value === 'cancelled' || value === 'rejected') {
-            return 'is-muted';
-        }
-        return '';
-    }
-
     async createQuickRequest() {
         if (!this.state.selectedRoomId) {
-            this.notification.add('Selecciona una sala para crear la solicitud.', { type: 'warning' });
+            this.notification.add('Selecciona una sala.', { type: 'warning' });
             return;
         }
         if (this.hasInvalidSlot) {
-            this.notification.add('La hora de fin debe ser mayor que la hora de inicio.', { type: 'warning' });
+            this.notification.add('La hora de fin debe ser mayor que la de inicio.', { type: 'warning' });
             return;
         }
         if (this.quickConflicts.length) {
-            this.notification.add('El horario seleccionado cruza con una solicitud o reserva existente.', { type: 'warning' });
+            this.notification.add('El horario cruza con otra reserva.', { type: 'warning' });
             return;
         }
 
@@ -292,11 +216,8 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud enviada para autorización.', { type: 'success' });
             this.state.form.objective = '';
             this.state.form.agenda = '';
-            if (newBooking && newBooking.room_id) {
-                this.state.selectedRoomId = newBooking.room_id;
-            }
             if (newBooking && newBooking.start) {
-                this.state.filters.date = this._dateFromDatetime(newBooking.start) || this.state.filters.date;
+                this.state.date = this._dateFromDatetime(newBooking.start) || this.state.date;
             }
             await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
         } catch (error) {
@@ -305,13 +226,6 @@ class AqMeetingRoomsDashboard extends Component {
     }
 
     openFullRequestForm() {
-        const context = {
-            default_room_id: this.state.selectedRoomId || false,
-            default_start: this._normalizeDatetime(this.state.form.start),
-            default_stop: this._normalizeDatetime(this.state.form.stop),
-            default_objective: this.state.form.objective || false,
-            default_agenda: this.state.form.agenda || false,
-        };
         this.action.doAction({
             type: 'ir.actions.act_window',
             name: 'Nueva solicitud de sala',
@@ -319,11 +233,17 @@ class AqMeetingRoomsDashboard extends Component {
             view_mode: 'form',
             views: [[false, 'form']],
             target: 'current',
-            context,
+            context: {
+                default_room_id: this.state.selectedRoomId || false,
+                default_start: this._normalizeDatetime(this.state.form.start),
+                default_stop: this._normalizeDatetime(this.state.form.stop),
+                default_objective: this.state.form.objective || false,
+                default_agenda: this.state.form.agenda || false,
+            },
         });
     }
 
-    openSelectedRoomBookings() {
+    openRoomCalendar() {
         if (!this.state.selectedRoomId) {
             return;
         }
@@ -335,10 +255,7 @@ class AqMeetingRoomsDashboard extends Component {
             views: [[false, 'calendar'], [false, 'list'], [false, 'form']],
             target: 'current',
             domain: [['room_id', '=', this.state.selectedRoomId]],
-            context: {
-                default_room_id: this.state.selectedRoomId,
-                search_default_today: 1,
-            },
+            context: { default_room_id: this.state.selectedRoomId, search_default_today: 1 },
         });
     }
 
@@ -381,11 +298,11 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud autorizada.', { type: 'success' });
             if (booking) {
                 this.state.selectedRoomId = booking.room_id;
-                this.state.filters.date = this._dateFromDatetime(booking.start) || this.state.filters.date;
+                this.state.date = this._dateFromDatetime(booking.start) || this.state.date;
             }
             await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible autorizar la solicitud.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible autorizar.'), { type: 'danger' });
         }
     }
 
@@ -397,7 +314,7 @@ class AqMeetingRoomsDashboard extends Component {
             this.notification.add('Solicitud rechazada.', { type: 'warning' });
             await this.loadDashboard();
         } catch (error) {
-            this.notification.add(this._errorMessage(error, 'No fue posible rechazar la solicitud.'), { type: 'danger' });
+            this.notification.add(this._errorMessage(error, 'No fue posible rechazar.'), { type: 'danger' });
         }
     }
 }
