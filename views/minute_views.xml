@@ -7,10 +7,10 @@
             <list string="Minutas" decoration-info="state == 'draft'" decoration-success="state == 'shared'">
                 <field name="name"/>
                 <field name="objective"/>
-                <field name="booking_id"/>
+                <field name="booking_id" optional="hide"/>
                 <field name="room_id"/>
                 <field name="meeting_start"/>
-                <field name="capture_by_id"/>
+                <field name="capture_by_id" widget="many2one_avatar_user"/>
                 <field name="participant_partner_ids" widget="many2many_tags" optional="hide"/>
                 <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'confirmed'" decoration-success="state == 'shared'"/>
                 <field name="shared_date" optional="hide"/>
@@ -27,9 +27,9 @@
                 <field name="parent_id" domain="[('minute_id', '=', minute_id)]" optional="show"/>
                 <field name="item_type"/>
                 <field name="name"/>
-                <field name="responsible_partner_id" optional="show"/>
+                <field name="responsible_partner_id" widget="many2one_avatar" optional="show"/>
                 <field name="due_date" optional="show"/>
-                <field name="priority" optional="hide"/>
+                <field name="priority" widget="priority" optional="hide"/>
                 <field name="task_state" optional="show"/>
                 <field name="description" optional="hide"/>
             </list>
@@ -40,26 +40,26 @@
         <field name="name">aq.meeting.minute.line.form</field>
         <field name="model">aq.meeting.minute.line</field>
         <field name="arch" type="xml">
-            <form string="Elemento de minuta">
+            <form string="Elemento de minuta" class="aq-minute-form">
                 <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Título claro del punto, acuerdo, decisión o tarea"/></h1>
+                    </div>
                     <group>
                         <group string="Clasificación">
                             <field name="minute_id" readonly="1"/>
                             <field name="parent_id" domain="[('minute_id', '=', minute_id)]"/>
-                            <field name="sequence"/>
                             <field name="item_type"/>
                         </group>
                         <group string="Seguimiento" invisible="item_type == 'section'">
-                            <field name="responsible_partner_id"/>
+                            <field name="responsible_partner_id" widget="many2one_avatar"/>
                             <field name="due_date"/>
-                            <field name="priority"/>
+                            <field name="priority" widget="priority"/>
                             <field name="task_state" invisible="item_type != 'task'"/>
                         </group>
                     </group>
-                    <group string="Contenido">
-                        <field name="name" placeholder="Título claro del punto, acuerdo, decisión o tarea"/>
-                        <field name="description" placeholder="Detalle suficiente para entender el contexto, conclusión y seguimiento."/>
-                    </group>
+                    <separator string="Detalle"/>
+                    <field name="description" nolabel="1" placeholder="Detalle suficiente para entender el contexto, conclusión y seguimiento."/>
                 </sheet>
             </form>
         </field>
@@ -69,263 +69,267 @@
         <field name="name">aq.meeting.minute.form</field>
         <field name="model">aq.meeting.minute</field>
         <field name="arch" type="xml">
-            <form string="Minuta corporativa">
+            <form string="Minuta corporativa" class="aq-minute-form">
                 <header>
                     <field name="line_count" invisible="1"/>
-                    <button name="action_seed_structure" type="object" string="Crear estructura base" class="btn-secondary" invisible="line_count != 0"/>
                     <button name="action_confirm" type="object" string="Confirmar minuta" class="btn-primary" invisible="state != 'draft'"/>
-                    <button name="action_reset_draft" type="object" string="Regresar a borrador" class="btn-secondary" invisible="state == 'draft'"/>
-                    <button name="action_print_minute" type="object" string="Generar reporte" class="btn-secondary"/>
                     <button name="action_share_by_email" type="object" string="Compartir con participantes" class="btn-primary" invisible="state == 'draft'"/>
+                    <button name="action_seed_structure" type="object" string="Crear estructura base" class="btn-secondary" invisible="line_count != 0"/>
+                    <button name="action_print_minute" type="object" string="Descargar PDF" class="btn-secondary"/>
+                    <button name="action_reset_draft" type="object" string="Regresar a borrador" class="btn-secondary" invisible="state == 'draft'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,shared"/>
                 </header>
                 <sheet>
-                    <div class="oe_title">
-                        <label for="name"/>
-                        <h1><field name="name" readonly="1"/></h1>
-                        <label for="objective"/>
-                        <h2><field name="objective" readonly="1" placeholder="Objetivo de la reunión"/></h2>
-                    </div>
+                    <widget name="web_ribbon" title="Compartida" bg_color="text-bg-success" invisible="state != 'shared'"/>
+                    <widget name="web_ribbon" title="Confirmada" bg_color="text-bg-info" invisible="state != 'confirmed'"/>
 
-                    <div class="alert alert-info" role="alert">
-                        Captura la minuta por secciones: primero resumen, después puntos tratados, acuerdos, decisiones, tareas y riesgos. La pestaña “Estructura completa” queda para ajustes jerárquicos avanzados.
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h3 class="text-muted fw-normal mt-1">
+                            <field name="objective" readonly="1" placeholder="Objetivo de la reunión"/>
+                        </h3>
                     </div>
 
                     <group>
-                        <group string="Datos de la reunión">
+                        <group string="Reunión">
                             <field name="booking_id" options="{'no_create_edit': True}"/>
                             <field name="room_id" readonly="1"/>
                             <field name="meeting_start" readonly="1"/>
                             <field name="meeting_stop" readonly="1"/>
-                            <field name="requested_by_id" readonly="1"/>
                         </group>
-                        <group string="Responsables y participantes">
-                            <field name="capture_by_id"/>
-                            <field name="chair_partner_id"/>
-                            <field name="participant_partner_ids" widget="many2many_tags" placeholder="Personas que participaron o deben recibir seguimiento"/>
+                        <group string="Personas">
+                            <field name="capture_by_id" widget="many2one_avatar_user"/>
+                            <field name="chair_partner_id" widget="many2one_avatar"/>
+                            <field name="requested_by_id" readonly="1" widget="many2one_avatar_user"/>
+                            <field name="participant_partner_ids" widget="many2many_tags_avatar" placeholder="Personas que participaron o deben recibir seguimiento"/>
                             <field name="shared_date" readonly="1" invisible="not shared_date"/>
                         </group>
                     </group>
 
                     <notebook>
-                        <page string="1. Resumen">
-                            <group>
-                                <field name="summary" placeholder="Qué se revisó, por qué era importante y cuál fue la conclusión general."/>
-                                <field name="agreements_summary" placeholder="Acuerdos generales que aplican a toda la reunión."/>
-                                <field name="risk_notes" placeholder="Riesgos, bloqueos o temas pendientes de resolución."/>
-                            </group>
+                        <page string="Resumen" name="page_summary">
+                            <separator string="Resumen ejecutivo"/>
+                            <field name="summary" nolabel="1" placeholder="Qué se revisó, por qué era importante y cuál fue la conclusión general."/>
+
+                            <separator string="Acuerdos generales"/>
+                            <field name="agreements_summary" nolabel="1" placeholder="Acuerdos generales que aplican a toda la reunión."/>
+
+                            <separator string="Riesgos y bloqueos"/>
+                            <field name="risk_notes" nolabel="1" placeholder="Riesgos, bloqueos o temas pendientes de resolución."/>
                         </page>
 
-                        <page string="2. Puntos tratados">
-                            <field name="note_line_ids" context="{'default_minute_id': id, 'default_item_type': 'note'}">
+                        <page string="Puntos tratados" name="page_notes">
+                            <field name="note_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'note'}">
                                 <list editable="bottom" decoration-muted="item_type == 'section'">
                                     <field name="sequence" widget="handle"/>
                                     <field name="item_type" invisible="1"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
-                                    <field name="name" string="Punto tratado"/>
-                                    <field name="responsible_partner_id" optional="show"/>
+                                    <field name="name" string="Punto tratado" placeholder="Tema o punto revisado…"/>
+                                    <field name="responsible_partner_id" widget="many2one_avatar" optional="show"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form string="Punto tratado">
+                                <form string="Punto tratado" class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Tema o punto revisado"/></h1>
+                                        </div>
                                         <group>
                                             <group string="Ubicación">
                                                 <field name="item_type" readonly="1"/>
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
-                                                <field name="sequence"/>
                                             </group>
                                             <group string="Referencia">
-                                                <field name="responsible_partner_id"/>
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
                                             </group>
                                         </group>
-                                        <group string="Contenido">
-                                            <field name="name" placeholder="Tema o punto revisado"/>
-                                            <field name="description" placeholder="Contexto, datos revisados y conclusión del punto."/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1" placeholder="Contexto, datos revisados y conclusión del punto."/>
                                     </sheet>
                                 </form>
                             </field>
                         </page>
 
-                        <page string="3. Acuerdos y decisiones">
+                        <page string="Acuerdos y decisiones" name="page_agreements">
                             <separator string="Acuerdos"/>
-                            <field name="agreement_line_ids" context="{'default_minute_id': id, 'default_item_type': 'agreement'}">
+                            <field name="agreement_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'agreement'}">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="item_type" invisible="1"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
-                                    <field name="name" string="Acuerdo"/>
-                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
+                                    <field name="name" string="Acuerdo" placeholder="Acuerdo claro y verificable…"/>
+                                    <field name="responsible_partner_id" string="Responsable" widget="many2one_avatar" optional="show"/>
                                     <field name="due_date" string="Fecha compromiso" optional="show"/>
+                                    <field name="priority" widget="priority" optional="show"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form string="Acuerdo">
+                                <form string="Acuerdo" class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Acuerdo claro y verificable"/></h1>
+                                        </div>
                                         <group>
-                                            <group>
+                                            <group string="Ubicación">
                                                 <field name="item_type" readonly="1"/>
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
-                                                <field name="sequence"/>
                                             </group>
-                                            <group>
-                                                <field name="responsible_partner_id"/>
+                                            <group string="Seguimiento">
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
                                                 <field name="due_date"/>
-                                                <field name="priority"/>
+                                                <field name="priority" widget="priority"/>
                                             </group>
                                         </group>
-                                        <group string="Contenido">
-                                            <field name="name" placeholder="Acuerdo claro y verificable"/>
-                                            <field name="description" placeholder="Detalle del acuerdo, alcance y condición de cumplimiento."/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1" placeholder="Detalle del acuerdo, alcance y condición de cumplimiento."/>
                                     </sheet>
                                 </form>
                             </field>
 
                             <separator string="Decisiones"/>
-                            <field name="decision_line_ids" context="{'default_minute_id': id, 'default_item_type': 'decision'}">
+                            <field name="decision_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'decision'}">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="item_type" invisible="1"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
-                                    <field name="name" string="Decisión"/>
-                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
+                                    <field name="name" string="Decisión" placeholder="Decisión tomada…"/>
+                                    <field name="responsible_partner_id" string="Responsable" widget="many2one_avatar" optional="show"/>
+                                    <field name="priority" widget="priority" optional="show"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form string="Decisión">
+                                <form string="Decisión" class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Decisión tomada"/></h1>
+                                        </div>
                                         <group>
-                                            <group>
+                                            <group string="Ubicación">
                                                 <field name="item_type" readonly="1"/>
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
-                                                <field name="sequence"/>
                                             </group>
-                                            <group>
-                                                <field name="responsible_partner_id"/>
-                                                <field name="priority"/>
+                                            <group string="Seguimiento">
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
+                                                <field name="priority" widget="priority"/>
                                             </group>
                                         </group>
-                                        <group string="Contenido">
-                                            <field name="name" placeholder="Decisión tomada"/>
-                                            <field name="description" placeholder="Criterio, impacto y alcance de la decisión."/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1" placeholder="Criterio, impacto y alcance de la decisión."/>
                                     </sheet>
                                 </form>
                             </field>
                         </page>
 
-                        <page string="4. Tareas">
-                            <field name="task_line_ids" context="{'default_minute_id': id, 'default_item_type': 'task', 'default_task_state': 'todo'}">
+                        <page string="Tareas" name="page_tasks">
+                            <field name="task_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'task', 'default_task_state': 'todo'}">
                                 <list editable="bottom" decoration-success="task_state == 'done'" decoration-warning="task_state == 'blocked'" decoration-info="task_state == 'in_progress'">
                                     <field name="sequence" widget="handle"/>
                                     <field name="item_type" invisible="1"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
-                                    <field name="name" string="Tarea / acción"/>
-                                    <field name="responsible_partner_id"/>
+                                    <field name="name" string="Tarea / acción" placeholder="Acción concreta a ejecutar…"/>
+                                    <field name="responsible_partner_id" widget="many2one_avatar"/>
                                     <field name="due_date"/>
-                                    <field name="priority"/>
+                                    <field name="priority" widget="priority"/>
                                     <field name="task_state"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form string="Tarea de seguimiento">
+                                <form string="Tarea de seguimiento" class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Acción concreta a ejecutar"/></h1>
+                                        </div>
                                         <group>
-                                            <group string="Acción">
+                                            <group string="Ubicación">
                                                 <field name="item_type" readonly="1"/>
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
-                                                <field name="sequence"/>
-                                                <field name="name" placeholder="Acción concreta a ejecutar"/>
                                             </group>
                                             <group string="Seguimiento">
-                                                <field name="responsible_partner_id"/>
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
                                                 <field name="due_date"/>
-                                                <field name="priority"/>
+                                                <field name="priority" widget="priority"/>
                                                 <field name="task_state"/>
                                             </group>
                                         </group>
-                                        <group string="Detalle">
-                                            <field name="description" placeholder="Resultado esperado, evidencia de cierre y dependencias."/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1" placeholder="Resultado esperado, evidencia de cierre y dependencias."/>
                                     </sheet>
                                 </form>
                             </field>
                         </page>
 
-                        <page string="5. Riesgos">
-                            <field name="risk_line_ids" context="{'default_minute_id': id, 'default_item_type': 'risk'}">
+                        <page string="Riesgos" name="page_risks">
+                            <field name="risk_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'risk'}">
                                 <list editable="bottom" decoration-warning="priority in ['2', '3']">
                                     <field name="sequence" widget="handle"/>
                                     <field name="item_type" invisible="1"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]" optional="hide"/>
-                                    <field name="name" string="Riesgo / bloqueo"/>
-                                    <field name="responsible_partner_id" string="Responsable" optional="show"/>
-                                    <field name="priority"/>
+                                    <field name="name" string="Riesgo / bloqueo" placeholder="Riesgo o bloqueo detectado…"/>
+                                    <field name="responsible_partner_id" string="Responsable" widget="many2one_avatar" optional="show"/>
+                                    <field name="priority" widget="priority"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form string="Riesgo o bloqueo">
+                                <form string="Riesgo o bloqueo" class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Riesgo o bloqueo detectado"/></h1>
+                                        </div>
                                         <group>
-                                            <group>
+                                            <group string="Ubicación">
                                                 <field name="item_type" readonly="1"/>
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id), ('item_type', '=', 'section')]"/>
-                                                <field name="sequence"/>
-                                                <field name="name" placeholder="Riesgo o bloqueo detectado"/>
                                             </group>
-                                            <group>
-                                                <field name="responsible_partner_id"/>
-                                                <field name="priority"/>
+                                            <group string="Seguimiento">
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
+                                                <field name="priority" widget="priority"/>
                                             </group>
                                         </group>
-                                        <group string="Detalle">
-                                            <field name="description" placeholder="Impacto, mitigación y siguiente paso recomendado."/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1" placeholder="Impacto, mitigación y siguiente paso recomendado."/>
                                     </sheet>
                                 </form>
                             </field>
                         </page>
 
-                        <page string="Estructura completa">
-                            <group>
-                                <field name="section_line_ids" context="{'default_minute_id': id, 'default_item_type': 'section'}">
-                                    <list editable="bottom" decoration-bf="1">
-                                        <field name="sequence" widget="handle"/>
-                                        <field name="item_type" invisible="1"/>
-                                        <field name="name" string="Sección"/>
-                                        <field name="description" optional="hide"/>
-                                    </list>
-                                </field>
-                            </group>
+                        <page string="Estructura completa" name="page_structure">
+                            <separator string="Secciones"/>
+                            <field name="section_line_ids" nolabel="1" context="{'default_minute_id': id, 'default_item_type': 'section'}">
+                                <list editable="bottom" decoration-bf="1">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type" invisible="1"/>
+                                    <field name="name" string="Sección" placeholder="Nombre de la sección…"/>
+                                    <field name="description" optional="hide"/>
+                                </list>
+                            </field>
+
                             <separator string="Todos los elementos"/>
-                            <field name="line_ids" context="{'default_minute_id': id}">
+                            <field name="line_ids" nolabel="1" context="{'default_minute_id': id}">
                                 <list editable="bottom" decoration-bf="item_type == 'section'" decoration-info="item_type == 'task'" decoration-warning="task_state == 'blocked'">
                                     <field name="sequence" widget="handle"/>
                                     <field name="parent_id" domain="[('minute_id', '=', parent.id)]" optional="show"/>
                                     <field name="item_type"/>
                                     <field name="name"/>
-                                    <field name="responsible_partner_id" optional="show"/>
+                                    <field name="responsible_partner_id" widget="many2one_avatar" optional="show"/>
                                     <field name="due_date" optional="show"/>
-                                    <field name="priority" optional="hide"/>
+                                    <field name="priority" widget="priority" optional="hide"/>
                                     <field name="task_state" optional="show"/>
                                     <field name="description" optional="hide"/>
                                 </list>
-                                <form>
+                                <form class="aq-minute-form">
                                     <sheet>
+                                        <div class="oe_title">
+                                            <h1><field name="name" placeholder="Título del elemento"/></h1>
+                                        </div>
                                         <group>
                                             <group string="Jerarquía">
                                                 <field name="parent_id" domain="[('minute_id', '=', parent.id)]"/>
                                                 <field name="item_type"/>
-                                                <field name="sequence"/>
                                             </group>
                                             <group string="Seguimiento">
-                                                <field name="responsible_partner_id"/>
+                                                <field name="responsible_partner_id" widget="many2one_avatar"/>
                                                 <field name="due_date"/>
-                                                <field name="priority"/>
+                                                <field name="priority" widget="priority"/>
                                                 <field name="task_state" invisible="item_type != 'task'"/>
                                             </group>
                                         </group>
-                                        <group string="Contenido">
-                                            <field name="name"/>
-                                            <field name="description"/>
-                                        </group>
+                                        <separator string="Detalle"/>
+                                        <field name="description" nolabel="1"/>
                                     </sheet>
                                 </form>
                             </field>
