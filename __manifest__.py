@@ -1,6 +1,6 @@
 {
     'name': 'Alphaqueb Meeting Rooms',
-    'version': '18.0.1.2.0',
+    'version': '18.0.1.3.0',
     'summary': 'Reservación de salas de juntas, aprobaciones y minutas corporativas',
     'description': '''
 Gestión integral de salas de juntas para Odoo 18.

@@ -6,7 +6,14 @@ import { Component, onWillStart, useState } from '@odoo/owl';
 
 const FIRST_HOUR = 8;
 const LAST_HOUR = 20;
-const TIMELINE_ROW_HEIGHT = 46;
+const WINDOW_MINUTES = (LAST_HOUR - FIRST_HOUR) * 60;
+
+const DURATION_OPTIONS = [
+    { minutes: 30, label: '30 min' },
+    { minutes: 60, label: '1 h' },
+    { minutes: 90, label: '1.5 h' },
+    { minutes: 120, label: '2 h' },
+];
 
 class AqMeetingRoomsDashboard extends Component {
     setup() {
@@ -27,8 +34,8 @@ class AqMeetingRoomsDashboard extends Component {
             date: today,
             lastUpdatedText: 'sin actualizar',
             form: {
-                start: this._defaultTime(today, 1),
-                stop: this._defaultTime(today, 2),
+                startTime: this._defaultStartTime(),
+                duration: 60,
                 objective: '',
                 agenda: '',
             },
@@ -57,21 +64,11 @@ class AqMeetingRoomsDashboard extends Component {
         return new Date(`${dateValue}T00:00:00`);
     }
 
-    _defaultTime(dateValue, offsetHours) {
-        const d = new Date();
-        d.setMinutes(0, 0, 0);
-        d.setHours(d.getHours() + offsetHours);
-
-        const hour = this._pad(d.getHours());
-        return `${dateValue}T${hour}:00`;
-    }
-
-    _normalizeDatetime(value) {
-        if (!value) {
-            return false;
-        }
-        const normalized = value.replace('T', ' ');
-        return normalized.length === 16 ? `${normalized}:00` : normalized;
+    _defaultStartTime() {
+        const now = new Date();
+        let minutes = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30;
+        minutes = Math.max(FIRST_HOUR * 60, Math.min(minutes, (LAST_HOUR - 1) * 60));
+        return `${this._pad(Math.floor(minutes / 60))}:${this._pad(minutes % 60)}`;
     }
 
     _dateFromDatetime(value) {
@@ -102,23 +99,13 @@ class AqMeetingRoomsDashboard extends Component {
     _bookingStopMinute(booking) {
         const bookingDate = this._dateFromDatetime(booking.stop);
         if (bookingDate && bookingDate > this.state.date) {
-            return (LAST_HOUR + 1) * 60;
+            return LAST_HOUR * 60;
         }
         const stopMinute = this._minutesOfDay(booking.stop);
         if (stopMinute === 0 && this._dateFromDatetime(booking.start) !== bookingDate) {
-            return (LAST_HOUR + 1) * 60;
+            return LAST_HOUR * 60;
         }
         return stopMinute;
-    }
-
-    _syncFormDate(dateValue) {
-        if (!dateValue) {
-            return;
-        }
-        const startTime = (this.state.form.start && this.state.form.start.slice(11, 16)) || '09:00';
-        const stopTime = (this.state.form.stop && this.state.form.stop.slice(11, 16)) || '10:00';
-        this.state.form.start = `${dateValue}T${startTime}`;
-        this.state.form.stop = `${dateValue}T${stopTime}`;
     }
 
     _formatClock(hour, minute = 0) {
@@ -143,6 +130,11 @@ class AqMeetingRoomsDashboard extends Component {
         return this._formatClock(hour, minute);
     }
 
+    formatTimeOption(slot) {
+        const [hour, minute] = slot.split(':').map(Number);
+        return this._formatClock(hour, minute);
+    }
+
     get dateLong() {
         const date = this._dateObject(this.state.date);
         const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -150,13 +142,24 @@ class AqMeetingRoomsDashboard extends Component {
         return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
     }
 
-    get dateShort() {
-        const date = this._dateObject(this.state.date);
-        return `${this._pad(date.getDate())}/${this._pad(date.getMonth() + 1)}/${date.getFullYear()}`;
-    }
-
     get isToday() {
         return this.state.date === this._today();
+    }
+
+    get trackHours() {
+        const hours = [];
+        for (let hour = FIRST_HOUR; hour < LAST_HOUR; hour += 1) {
+            hours.push(hour);
+        }
+        return hours;
+    }
+
+    get trackSlots() {
+        const slots = [];
+        for (let minutes = FIRST_HOUR * 60; minutes < LAST_HOUR * 60; minutes += 30) {
+            slots.push(`${this._pad(Math.floor(minutes / 60))}:${this._pad(minutes % 60)}`);
+        }
+        return slots;
     }
 
     get nowLineStyle() {
@@ -166,28 +169,12 @@ class AqMeetingRoomsDashboard extends Component {
         const now = new Date();
         const minutes = now.getHours() * 60 + now.getMinutes();
         const lowerBound = FIRST_HOUR * 60;
-        const upperBound = (LAST_HOUR + 1) * 60;
+        const upperBound = LAST_HOUR * 60;
         if (minutes < lowerBound || minutes > upperBound) {
             return '';
         }
-        const top = ((minutes - lowerBound) / 60) * TIMELINE_ROW_HEIGHT;
-        return `top: ${top}px;`;
-    }
-
-    get timelineHours() {
-        const hours = [];
-        for (let hour = FIRST_HOUR; hour <= LAST_HOUR; hour += 1) {
-            hours.push(hour);
-        }
-        return hours;
-    }
-
-    get roomStripSlots() {
-        const slots = [];
-        for (let hour = FIRST_HOUR; hour < LAST_HOUR; hour += 1) {
-            slots.push(hour);
-        }
-        return slots;
+        const fraction = ((minutes - lowerBound) / WINDOW_MINUTES).toFixed(4);
+        return `left: calc(var(--aqr-label-w) + (100% - var(--aqr-label-w)) * ${fraction});`;
     }
 
     _errorMessage(error, fallback) {
@@ -257,7 +244,6 @@ class AqMeetingRoomsDashboard extends Component {
 
     async onDateChange(ev) {
         this.state.date = ev.currentTarget.value || this._today();
-        this._syncFormDate(this.state.date);
         await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
     }
 
@@ -267,8 +253,6 @@ class AqMeetingRoomsDashboard extends Component {
         date.setDate(date.getDate() + days);
 
         this.state.date = `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}`;
-        this._syncFormDate(this.state.date);
-
         await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
     }
 
@@ -277,7 +261,6 @@ class AqMeetingRoomsDashboard extends Component {
             return;
         }
         this.state.date = this._today();
-        this._syncFormDate(this.state.date);
         await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
     }
 
@@ -289,40 +272,6 @@ class AqMeetingRoomsDashboard extends Component {
         return this.state.rooms.find((room) => room.id === this.state.selectedRoomId) || false;
     }
 
-    get selectedBookings() {
-        if (!this.state.selectedRoomId) {
-            return [];
-        }
-        return this.state.bookings
-            .filter((booking) => booking.room_id === this.state.selectedRoomId)
-            .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-    }
-
-    get selectedRoomMetaParts() {
-        const room = this.selectedRoom;
-        if (!room) {
-            return [];
-        }
-
-        const parts = [];
-        parts.push(`${room.capacity || 0} personas`);
-
-        if (room.location) {
-            parts.push(room.location);
-        }
-
-        if (room.equipment) {
-            const equipmentParts = room.equipment
-                .split(/[\n,;]+/)
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .slice(0, 4);
-            parts.push(...equipmentParts);
-        }
-
-        return parts;
-    }
-
     get freeRoomsCount() {
         return this.state.rooms.filter((room) => this.roomDayStatus(room) === 'available').length;
     }
@@ -331,14 +280,28 @@ class AqMeetingRoomsDashboard extends Component {
         return this.state.rooms.filter((room) => this.roomDayStatus(room) === 'occupied').length;
     }
 
-    get pendingRoomsCount() {
-        return this.state.rooms.filter((room) => this.roomDayStatus(room) === 'pending').length;
+    get durationOptions() {
+        return DURATION_OPTIONS;
     }
 
-    get hasInvalidSlot() {
-        const start = this._normalizeDatetime(this.state.form.start);
-        const stop = this._normalizeDatetime(this.state.form.stop);
-        return Boolean(start && stop && start >= stop);
+    get formStart() {
+        return `${this.state.date} ${this.state.form.startTime}:00`;
+    }
+
+    get _formStopParts() {
+        const [hour, minute] = this.state.form.startTime.split(':').map(Number);
+        const total = hour * 60 + minute + this.state.form.duration;
+        return { hour: Math.floor(total / 60), minute: total % 60 };
+    }
+
+    get formStop() {
+        const { hour, minute } = this._formStopParts;
+        return `${this.state.date} ${this._pad(hour)}:${this._pad(minute)}:00`;
+    }
+
+    get formStopLabel() {
+        const { hour, minute } = this._formStopParts;
+        return this._formatClock(hour, minute);
     }
 
     get hasObjective() {
@@ -346,12 +309,11 @@ class AqMeetingRoomsDashboard extends Component {
     }
 
     get quickConflicts() {
-        const start = this._normalizeDatetime(this.state.form.start);
-        const stop = this._normalizeDatetime(this.state.form.stop);
-
-        if (!this.state.selectedRoomId || !start || !stop || start >= stop) {
+        if (!this.state.selectedRoomId) {
             return [];
         }
+        const start = this.formStart;
+        const stop = this.formStop;
 
         return this.state.bookings.filter(
             (booking) =>
@@ -364,6 +326,18 @@ class AqMeetingRoomsDashboard extends Component {
 
     roomBookings(roomId) {
         return this.state.bookings.filter((booking) => booking.room_id === roomId);
+    }
+
+    roomTimelineBookings(roomId) {
+        const lowerBound = FIRST_HOUR * 60;
+        const upperBound = LAST_HOUR * 60;
+        return this.roomBookings(roomId)
+            .filter(
+                (booking) =>
+                    this._bookingStartMinute(booking) < upperBound &&
+                    this._bookingStopMinute(booking) > lowerBound
+            )
+            .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
     }
 
     roomDayStatus(room) {
@@ -391,45 +365,25 @@ class AqMeetingRoomsDashboard extends Component {
         return `is-${this.roomDayStatus(room)}`;
     }
 
-    roomPillClass(room) {
-        return `pill--${this.roomDayStatus(room)}`;
-    }
-
-    roomHasBookingAt(roomId, hour) {
-        const start = hour * 60;
-        const stop = (hour + 1) * 60;
-
-        return this.roomBookings(roomId).some((booking) => {
-            const bookingStart = this._bookingStartMinute(booking);
-            const bookingStop = this._bookingStopMinute(booking);
-            return bookingStart < stop && bookingStop > start;
-        });
-    }
-
-    bookingsAtHour(hour) {
-        return this.selectedBookings.filter((booking) => {
-            const startMinute = Math.max(FIRST_HOUR * 60, this._bookingStartMinute(booking));
-            const displayHour = Math.floor(startMinute / 60);
-            return displayHour === hour;
-        });
-    }
-
     timelineEventStyle(booking) {
         const lowerBound = FIRST_HOUR * 60;
-        const upperBound = (LAST_HOUR + 1) * 60;
+        const upperBound = LAST_HOUR * 60;
 
         const startMinute = Math.max(lowerBound, this._bookingStartMinute(booking));
-        const stopMinute = Math.min(upperBound, this._bookingStopMinute(booking));
-        const safeDuration = Math.max(30, stopMinute - startMinute);
+        const stopMinute = Math.min(upperBound, Math.max(startMinute + 15, this._bookingStopMinute(booking)));
 
-        const top = ((startMinute % 60) / 60) * TIMELINE_ROW_HEIGHT;
-        const height = Math.max(34, (safeDuration / 60) * TIMELINE_ROW_HEIGHT - 4);
+        const left = ((startMinute - lowerBound) / WINDOW_MINUTES) * 100;
+        const width = Math.max(((stopMinute - startMinute) / WINDOW_MINUTES) * 100, 2.5);
 
-        return `top: ${top}px; height: ${height}px;`;
+        return `left: ${left}%; width: ${width}%;`;
     }
 
     bookingRange(booking) {
         return `${this.formatTime(booking.start)}–${this.formatTime(booking.stop)}`;
+    }
+
+    bookingTooltip(booking) {
+        return `${booking.objective || ''}\n${this.bookingRange(booking)} · ${booking.requested_by || ''}`;
     }
 
     bookingStateClass(value) {
@@ -472,30 +426,15 @@ class AqMeetingRoomsDashboard extends Component {
         this.state.selectedRoomId = Number(ev.currentTarget.value) || false;
     }
 
-    setDuration(ev) {
-        const minutes = Number(ev.currentTarget.dataset.minutes || 0);
-        const start = this.state.form.start;
-        if (!minutes || !start) {
-            return;
-        }
-        const date = new Date(start);
-        if (Number.isNaN(date.getTime())) {
-            return;
-        }
-        date.setMinutes(date.getMinutes() + minutes);
-        this.state.form.stop =
-            `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}` +
-            `T${this._pad(date.getHours())}:${this._pad(date.getMinutes())}`;
-    }
-
-    onTimelineSlotClick(ev) {
-        const hour = Number(ev.currentTarget.dataset.hour);
-        if (!hour || !this.state.selectedRoomId) {
+    onSlotClick(ev) {
+        const roomId = Number(ev.currentTarget.dataset.roomId);
+        const time = ev.currentTarget.dataset.time;
+        if (!roomId || !time) {
             return;
         }
 
-        this.state.form.start = `${this.state.date}T${this._pad(hour)}:00`;
-        this.state.form.stop = `${this.state.date}T${this._pad(hour + 1)}:00`;
+        this.state.selectedRoomId = roomId;
+        this.state.form.startTime = time;
 
         window.setTimeout(() => {
             const objective = document.querySelector('.o_aq_rooms .js-aq-objective');
@@ -503,6 +442,20 @@ class AqMeetingRoomsDashboard extends Component {
                 objective.focus();
             }
         }, 0);
+    }
+
+    setDuration(ev) {
+        const minutes = Number(ev.currentTarget.dataset.minutes || 0);
+        if (minutes) {
+            this.state.form.duration = minutes;
+        }
+    }
+
+    scrollToPending() {
+        const panel = document.querySelector('.o_aq_rooms .js-aq-pending');
+        if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     async createQuickRequest() {
@@ -516,11 +469,6 @@ class AqMeetingRoomsDashboard extends Component {
             return;
         }
 
-        if (this.hasInvalidSlot) {
-            this.notification.add('La hora de fin debe ser mayor que la de inicio.', { type: 'warning' });
-            return;
-        }
-
         if (this.quickConflicts.length) {
             this.notification.add('El horario cruza con otra reserva o solicitud pendiente.', { type: 'warning' });
             return;
@@ -528,8 +476,8 @@ class AqMeetingRoomsDashboard extends Component {
 
         const values = {
             room_id: this.state.selectedRoomId,
-            start: this._normalizeDatetime(this.state.form.start),
-            stop: this._normalizeDatetime(this.state.form.stop),
+            start: this.formStart,
+            stop: this.formStop,
             objective: this.state.form.objective.trim(),
             agenda: this.state.form.agenda,
         };
@@ -562,11 +510,22 @@ class AqMeetingRoomsDashboard extends Component {
             target: 'current',
             context: {
                 default_room_id: this.state.selectedRoomId || false,
-                default_start: this._normalizeDatetime(this.state.form.start),
-                default_stop: this._normalizeDatetime(this.state.form.stop),
+                default_start: this.formStart,
+                default_stop: this.formStop,
                 default_objective: this.state.form.objective || false,
                 default_agenda: this.state.form.agenda || false,
             },
+        });
+    }
+
+    openRoomConfig() {
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Salas de juntas',
+            res_model: 'aq.meeting.room',
+            view_mode: 'list,form',
+            views: [[false, 'list'], [false, 'form']],
+            target: 'current',
         });
     }
 
@@ -638,7 +597,6 @@ class AqMeetingRoomsDashboard extends Component {
             if (booking) {
                 this.state.selectedRoomId = booking.room_id;
                 this.state.date = this._dateFromDatetime(booking.start) || this.state.date;
-                this._syncFormDate(this.state.date);
             }
 
             await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });

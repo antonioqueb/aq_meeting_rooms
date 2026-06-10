@@ -17,7 +17,7 @@
                         </span>
                         <div class="aqr__brand-text">
                             <h1 class="aqr__title">Salas de juntas</h1>
-                            <p class="aqr__subtitle">Consulta disponibilidad, reserva y da seguimiento a tus solicitudes.</p>
+                            <p class="aqr__subtitle">Encuentra un hueco libre y reserva con un clic.</p>
                         </div>
                     </div>
 
@@ -53,64 +53,6 @@
                     </div>
                 </header>
 
-                <!-- Indicadores -->
-                <section class="stats">
-                    <article class="stat">
-                        <span class="stat__icon stat__icon--total" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 21h18"/>
-                                <path d="M5 21V7l7-4 7 4v14"/>
-                                <path d="M9 21v-6h6v6"/>
-                            </svg>
-                        </span>
-                        <div class="stat__data">
-                            <span class="stat__value" t-esc="state.rooms.length"/>
-                            <span class="stat__label">Salas registradas</span>
-                        </div>
-                    </article>
-
-                    <article class="stat">
-                        <span class="stat__icon stat__icon--free" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                        </span>
-                        <div class="stat__data">
-                            <span class="stat__value" t-esc="freeRoomsCount"/>
-                            <span class="stat__label">Disponibles hoy</span>
-                        </div>
-                    </article>
-
-                    <article class="stat">
-                        <span class="stat__icon stat__icon--busy" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="15" y1="9" x2="9" y2="15"/>
-                                <line x1="9" y1="9" x2="15" y2="15"/>
-                            </svg>
-                        </span>
-                        <div class="stat__data">
-                            <span class="stat__value" t-esc="occupiedRoomsCount"/>
-                            <span class="stat__label">Con reservas</span>
-                        </div>
-                    </article>
-
-                    <article class="stat">
-                        <span class="stat__icon stat__icon--pending" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                        </span>
-                        <div class="stat__data">
-                            <span class="stat__value" t-esc="state.pendingBookings.length"/>
-                            <span class="stat__label" t-if="state.canApprove">Por autorizar</span>
-                            <span class="stat__label" t-else="">Mis pendientes</span>
-                        </div>
-                    </article>
-                </section>
-
                 <t t-if="state.loading">
                     <div class="loading">
                         <span class="loading__spinner" aria-hidden="true"/>
@@ -118,57 +60,101 @@
                     </div>
                 </t>
 
+                <!-- Sin salas: estado vacío global con CTA -->
+                <t t-elif="!state.rooms.length">
+                    <div class="hero-empty">
+                        <span class="hero-empty__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 21h18"/>
+                                <path d="M5 21V7l7-4 7 4v14"/>
+                                <path d="M9 21v-6h6v6"/>
+                            </svg>
+                        </span>
+                        <h2 class="hero-empty__title">Aún no hay salas registradas</h2>
+                        <p class="hero-empty__text">
+                            Da de alta tu primera sala de juntas para empezar a recibir reservas
+                            y gestionar autorizaciones desde este tablero.
+                        </p>
+                        <button class="btn btn--primary" type="button" t-on-click="openRoomConfig">
+                            Dar de alta una sala
+                        </button>
+                    </div>
+                </t>
+
                 <t t-else="">
+                    <!-- Indicadores -->
+                    <section class="stats">
+                        <article class="stat">
+                            <span class="stat__icon stat__icon--total" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 21h18"/>
+                                    <path d="M5 21V7l7-4 7 4v14"/>
+                                    <path d="M9 21v-6h6v6"/>
+                                </svg>
+                            </span>
+                            <div class="stat__data">
+                                <span class="stat__value" t-esc="state.rooms.length"/>
+                                <span class="stat__label">Salas registradas</span>
+                            </div>
+                        </article>
+
+                        <article class="stat">
+                            <span class="stat__icon stat__icon--free" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </span>
+                            <div class="stat__data">
+                                <span class="stat__value" t-esc="freeRoomsCount"/>
+                                <span class="stat__label">Disponibles hoy</span>
+                            </div>
+                        </article>
+
+                        <article class="stat">
+                            <span class="stat__icon stat__icon--busy" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                            </span>
+                            <div class="stat__data">
+                                <span class="stat__value" t-esc="occupiedRoomsCount"/>
+                                <span class="stat__label">Con reservas</span>
+                            </div>
+                        </article>
+
+                        <button type="button"
+                                t-att-class="'stat stat--action ' + (state.pendingBookings.length ? 'is-alert' : '')"
+                                t-on-click="scrollToPending"
+                                title="Ir a la cola de solicitudes">
+                            <span class="stat__icon stat__icon--pending" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </span>
+                            <div class="stat__data">
+                                <span class="stat__value" t-esc="state.pendingBookings.length"/>
+                                <span class="stat__label" t-if="state.canApprove">Por autorizar</span>
+                                <span class="stat__label" t-else="">Mis pendientes</span>
+                            </div>
+                            <svg class="stat__chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    </section>
+
                     <div class="aqr__grid">
 
-                        <!-- Salas -->
-                        <aside class="panel rooms">
+                        <!-- Tablero de disponibilidad: filas = salas, columnas = horas -->
+                        <section class="panel board">
                             <header class="panel__head">
-                                <h2 class="panel__title">Salas</h2>
-                                <span class="panel__count" t-esc="state.rooms.length"/>
-                            </header>
-
-                            <ul class="rooms__list" t-if="state.rooms.length">
-                                <li t-foreach="state.rooms" t-as="room" t-key="room.id">
-                                    <button type="button"
-                                            t-att-data-room-id="room.id"
-                                            t-on-click="selectRoom"
-                                            t-att-class="'room ' + (state.selectedRoomId === room.id ? 'is-selected' : '')">
-                                        <div class="room__row">
-                                            <span t-att-class="'room__dot ' + roomDotClass(room)" aria-hidden="true"/>
-                                            <div class="room__info">
-                                                <span class="room__name" t-esc="room.name"/>
-                                                <span class="room__meta">
-                                                    <t t-esc="room.capacity || 0"/> personas
-                                                    <t t-if="room.location"> · <t t-esc="room.location"/></t>
-                                                </span>
-                                            </div>
-                                            <span t-att-class="'pill ' + roomPillClass(room)" t-esc="roomStatusLabel(room)"/>
-                                        </div>
-
-                                        <div class="room__strip" title="Ocupación de 8am a 8pm">
-                                            <span t-foreach="roomStripSlots"
-                                                  t-as="hour"
-                                                  t-key="hour"
-                                                  t-att-class="'room__tick ' + (roomHasBookingAt(room.id, hour) ? 'is-booked' : '')"/>
-                                        </div>
-                                    </button>
-                                </li>
-                            </ul>
-
-                            <div class="empty" t-else="">
-                                <strong>No hay salas registradas</strong>
-                                <span>Da de alta salas desde Configuración.</span>
-                            </div>
-                        </aside>
-
-                        <!-- Agenda -->
-                        <section class="panel agenda">
-                            <header class="panel__head agenda__head">
-                                <div class="agenda__heading">
-                                    <h2 class="panel__title" t-if="selectedRoom" t-esc="selectedRoom.name"/>
-                                    <h2 class="panel__title" t-else="">Agenda</h2>
-                                    <span class="agenda__date" t-esc="dateLong"/>
+                                <div class="board__heading">
+                                    <h2 class="panel__title">Disponibilidad</h2>
+                                    <span class="board__hint">Da clic en un horario libre para preparar la reserva.</span>
                                 </div>
 
                                 <button class="btn btn--secondary btn--sm" type="button" t-if="selectedRoom" t-on-click="openRoomCalendar">
@@ -178,70 +164,89 @@
                                         <line x1="8" y1="2" x2="8" y2="6"/>
                                         <line x1="3" y1="10" x2="21" y2="10"/>
                                     </svg>
-                                    Ver calendario
+                                    Calendario de <t t-esc="selectedRoom.name"/>
                                 </button>
                             </header>
 
-                            <div class="agenda__chips" t-if="selectedRoom and selectedRoomMetaParts.length">
-                                <span class="chip" t-foreach="selectedRoomMetaParts" t-as="part" t-key="part_index" t-esc="part"/>
-                            </div>
-
-                            <div class="agenda__body">
-                                <t t-if="!selectedRoom">
-                                    <div class="empty empty--tall">
-                                        <strong>Selecciona una sala</strong>
-                                        <span>Elige una sala de la lista para ver su agenda del día.</span>
-                                    </div>
-                                </t>
-
-                                <t t-else="">
-                                    <div class="agenda__notice" t-if="!selectedBookings.length">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                            <polyline points="22 4 12 14.01 9 11.01"/>
-                                        </svg>
-                                        Sala libre todo el día. Da clic en cualquier horario para reservarla.
+                            <div class="board__scroll">
+                                <div class="board__inner">
+                                    <div class="board__head" aria-hidden="true">
+                                        <span class="board__corner">Sala</span>
+                                        <div class="board__hours">
+                                            <span class="board__hour" t-foreach="trackHours" t-as="hour" t-key="hour" t-esc="formatHour(hour)"/>
+                                        </div>
                                     </div>
 
-                                    <div class="timeline">
-                                        <div class="timeline__now" t-if="nowLineStyle" t-att-style="nowLineStyle" aria-hidden="true"/>
+                                    <div class="board__body">
+                                        <div class="board__now" t-if="nowLineStyle" t-att-style="nowLineStyle" aria-hidden="true"/>
 
-                                        <div class="tl-row" t-foreach="timelineHours" t-as="hour" t-key="hour">
-                                            <span class="tl-row__label" t-esc="formatHour(hour)"/>
+                                        <div t-foreach="state.rooms"
+                                             t-as="room"
+                                             t-key="room.id"
+                                             t-att-class="'board__row ' + (state.selectedRoomId === room.id ? 'is-selected' : '')">
 
-                                            <div class="tl-row__slot" t-att-data-hour="hour" t-on-click="onTimelineSlotClick">
-                                                <span class="tl-row__ghost">
-                                                    + Reservar a las <t t-esc="formatHour(hour)"/>
+                                            <button type="button"
+                                                    class="board__room"
+                                                    t-att-data-room-id="room.id"
+                                                    t-att-title="roomStatusLabel(room)"
+                                                    t-on-click="selectRoom">
+                                                <span t-att-class="'room__dot ' + roomDotClass(room)" aria-hidden="true"/>
+                                                <span class="board__room-info">
+                                                    <span class="board__room-name" t-esc="room.name"/>
+                                                    <span class="board__room-meta">
+                                                        <t t-esc="room.capacity || 0"/>p
+                                                        <t t-if="room.location"> · <t t-esc="room.location"/></t>
+                                                    </span>
                                                 </span>
+                                            </button>
 
-                                                <article t-foreach="bookingsAtHour(hour)"
+                                            <div class="board__track">
+                                                <button t-foreach="trackSlots"
+                                                        t-as="slot"
+                                                        t-key="slot"
+                                                        type="button"
+                                                        class="board__slot"
+                                                        t-att-data-room-id="room.id"
+                                                        t-att-data-time="slot"
+                                                        t-att-aria-label="'Reservar ' + room.name + ' a las ' + formatTimeOption(slot)"
+                                                        t-att-title="'Reservar a las ' + formatTimeOption(slot)"
+                                                        t-on-click="onSlotClick"/>
+
+                                                <article t-foreach="roomTimelineBookings(room.id)"
                                                          t-as="booking"
                                                          t-key="booking.id"
                                                          t-att-data-booking-id="booking.id"
                                                          t-att-class="'event ' + bookingStateClass(booking.state)"
                                                          t-att-style="timelineEventStyle(booking)"
+                                                         t-att-title="bookingTooltip(booking)"
                                                          t-on-click="openBooking">
-                                                    <div class="event__top">
-                                                        <span class="event__title" t-esc="booking.objective"/>
-                                                        <span class="event__time" t-esc="bookingRange(booking)"/>
-                                                    </div>
-                                                    <span class="event__owner" t-esc="booking.requested_by"/>
+                                                    <span class="event__title" t-esc="booking.objective"/>
+                                                    <span class="event__time" t-esc="bookingRange(booking)"/>
                                                 </article>
                                             </div>
                                         </div>
                                     </div>
-                                </t>
+                                </div>
                             </div>
+
+                            <footer class="board__legend" aria-hidden="true">
+                                <span class="legend"><span class="legend__swatch legend__swatch--approved"/> Confirmada</span>
+                                <span class="legend"><span class="legend__swatch legend__swatch--pending"/> Por autorizar</span>
+                                <span class="legend"><span class="legend__swatch legend__swatch--muted"/> Finalizada</span>
+                            </footer>
                         </section>
 
-                        <!-- Columna derecha: solicitud + pendientes -->
+                        <!-- Columna lateral -->
                         <div class="aqr__side">
 
-                            <section class="panel form">
+                            <section class="panel form" t-att-style="state.canApprove and state.pendingBookings.length ? 'order: 1;' : ''">
                                 <header class="panel__head">
-                                    <h2 class="panel__title">Nueva reserva</h2>
+                                    <div>
+                                        <h2 class="panel__title">Nueva reserva</h2>
+                                        <span class="form__date" t-esc="dateLong"/>
+                                    </div>
                                     <button type="button" class="btn btn--link btn--sm" t-on-click="openFullRequestForm">
-                                        Formulario completo
+                                        Más opciones
                                     </button>
                                 </header>
 
@@ -262,22 +267,30 @@
 
                                     <div class="field-grid">
                                         <label class="field">
-                                            <span class="field__label">Inicio</span>
-                                            <input class="input" type="datetime-local" t-model="state.form.start"/>
+                                            <span class="field__label">Hora de inicio</span>
+                                            <select class="input" t-model="state.form.startTime">
+                                                <option t-foreach="trackSlots" t-as="slot" t-key="slot" t-att-value="slot">
+                                                    <t t-esc="formatTimeOption(slot)"/>
+                                                </option>
+                                            </select>
                                         </label>
 
-                                        <label class="field">
-                                            <span class="field__label">Fin</span>
-                                            <input class="input" type="datetime-local" t-model="state.form.stop"/>
-                                        </label>
+                                        <div class="field">
+                                            <span class="field__label">Termina</span>
+                                            <span class="form__end" t-esc="formStopLabel"/>
+                                        </div>
                                     </div>
 
-                                    <div class="durations" role="group" aria-label="Duración rápida">
+                                    <div class="durations" role="group" aria-label="Duración">
                                         <span class="durations__label">Duración:</span>
-                                        <button type="button" class="durations__btn" data-minutes="30" t-on-click="setDuration">30 min</button>
-                                        <button type="button" class="durations__btn" data-minutes="60" t-on-click="setDuration">1 h</button>
-                                        <button type="button" class="durations__btn" data-minutes="90" t-on-click="setDuration">1.5 h</button>
-                                        <button type="button" class="durations__btn" data-minutes="120" t-on-click="setDuration">2 h</button>
+                                        <button t-foreach="durationOptions"
+                                                t-as="option"
+                                                t-key="option.minutes"
+                                                type="button"
+                                                t-att-class="'durations__btn ' + (state.form.duration === option.minutes ? 'is-active' : '')"
+                                                t-att-data-minutes="option.minutes"
+                                                t-on-click="setDuration"
+                                                t-esc="option.label"/>
                                     </div>
 
                                     <label class="field">
@@ -296,10 +309,6 @@
                                                   placeholder="1. Avances&#10;2. Bloqueos&#10;3. Acuerdos"/>
                                     </label>
 
-                                    <p class="alert alert--error" t-if="hasInvalidSlot">
-                                        La hora de fin debe ser mayor que la de inicio.
-                                    </p>
-
                                     <div class="alert alert--warn" t-if="quickConflicts.length">
                                         <strong>El horario cruza con:</strong>
                                         <ul>
@@ -311,15 +320,17 @@
 
                                     <button class="btn btn--primary btn--block"
                                             type="submit"
-                                            t-att-disabled="!state.selectedRoomId || !hasObjective || hasInvalidSlot || quickConflicts.length">
-                                        Enviar solicitud
+                                            t-att-disabled="!state.selectedRoomId || !hasObjective || quickConflicts.length">
+                                        <t t-if="!state.selectedRoomId">Selecciona una sala</t>
+                                        <t t-elif="!hasObjective">Captura el objetivo</t>
+                                        <t t-elif="quickConflicts.length">Horario ocupado</t>
+                                        <t t-else="">Enviar solicitud</t>
                                     </button>
-
-                                    <p class="form__hint">La reserva queda sujeta a autorización.</p>
                                 </form>
                             </section>
 
-                            <section class="panel pending">
+                            <section class="panel pending js-aq-pending"
+                                     t-att-style="state.canApprove and state.pendingBookings.length ? 'order: 0;' : ''">
                                 <header class="panel__head">
                                     <h2 class="panel__title" t-if="state.canApprove">Por autorizar</h2>
                                     <h2 class="panel__title" t-else="">Mis solicitudes</h2>
