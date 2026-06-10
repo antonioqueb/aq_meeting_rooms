@@ -155,6 +155,25 @@ class AqMeetingRoomsDashboard extends Component {
         return `${this._pad(date.getDate())}/${this._pad(date.getMonth() + 1)}/${date.getFullYear()}`;
     }
 
+    get isToday() {
+        return this.state.date === this._today();
+    }
+
+    get nowLineStyle() {
+        if (!this.isToday) {
+            return '';
+        }
+        const now = new Date();
+        const minutes = now.getHours() * 60 + now.getMinutes();
+        const lowerBound = FIRST_HOUR * 60;
+        const upperBound = (LAST_HOUR + 1) * 60;
+        if (minutes < lowerBound || minutes > upperBound) {
+            return '';
+        }
+        const top = ((minutes - lowerBound) / 60) * TIMELINE_ROW_HEIGHT;
+        return `top: ${top}px;`;
+    }
+
     get timelineHours() {
         const hours = [];
         for (let hour = FIRST_HOUR; hour <= LAST_HOUR; hour += 1) {
@@ -250,6 +269,15 @@ class AqMeetingRoomsDashboard extends Component {
         this.state.date = `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}`;
         this._syncFormDate(this.state.date);
 
+        await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
+    }
+
+    async goToday() {
+        if (this.isToday) {
+            return;
+        }
+        this.state.date = this._today();
+        this._syncFormDate(this.state.date);
         await this.loadDashboard({ preferredRoomId: this.state.selectedRoomId });
     }
 
@@ -364,9 +392,6 @@ class AqMeetingRoomsDashboard extends Component {
     }
 
     roomPillClass(room) {
-        if (room.id === this.state.selectedRoomId) {
-            return 'pill--ink';
-        }
         return `pill--${this.roomDayStatus(room)}`;
     }
 
@@ -445,6 +470,22 @@ class AqMeetingRoomsDashboard extends Component {
 
     onRoomSelect(ev) {
         this.state.selectedRoomId = Number(ev.currentTarget.value) || false;
+    }
+
+    setDuration(ev) {
+        const minutes = Number(ev.currentTarget.dataset.minutes || 0);
+        const start = this.state.form.start;
+        if (!minutes || !start) {
+            return;
+        }
+        const date = new Date(start);
+        if (Number.isNaN(date.getTime())) {
+            return;
+        }
+        date.setMinutes(date.getMinutes() + minutes);
+        this.state.form.stop =
+            `${date.getFullYear()}-${this._pad(date.getMonth() + 1)}-${this._pad(date.getDate())}` +
+            `T${this._pad(date.getHours())}:${this._pad(date.getMinutes())}`;
     }
 
     onTimelineSlotClick(ev) {

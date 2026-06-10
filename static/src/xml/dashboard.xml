@@ -2,121 +2,130 @@
 <templates xml:space="preserve">
     <t t-name="aq_meeting_rooms.Dashboard">
         <div class="o_aq_rooms">
-            <div class="salas__backdrop" aria-hidden="true">
-                <span class="salas__blob salas__blob--a"/>
-                <span class="salas__blob salas__blob--b"/>
-                <span class="salas__blob salas__blob--c"/>
-            </div>
+            <div class="aqr">
 
-            <div class="salas__shell">
-
-                <!-- Header -->
-                <header class="salas__header">
-                    <div class="salas__heading">
-                        <span class="salas__eyebrow">
-                            <span class="salas__dot" aria-hidden="true"/>
-                            Operaciones · Espacios
+                <!-- Barra superior -->
+                <header class="aqr__topbar">
+                    <div class="aqr__brand">
+                        <span class="aqr__logo" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                            </svg>
                         </span>
-                        <h1 class="salas__title">Salas de juntas</h1>
-                        <p class="salas__lede">Consulta disponibilidad, elige una franja y crea solicitudes sujetas a autorización.</p>
+                        <div class="aqr__brand-text">
+                            <h1 class="aqr__title">Salas de juntas</h1>
+                            <p class="aqr__subtitle">Consulta disponibilidad, reserva y da seguimiento a tus solicitudes.</p>
+                        </div>
                     </div>
 
-                    <div class="salas__toolbar">
-                        <div class="card card--inline date-picker">
-                            <button class="date-picker__nav" type="button" data-day="-1" aria-label="Día anterior" t-on-click="changeDateBy">‹</button>
-                            <div class="date-picker__field">
-                                <span class="label-mono">Fecha</span>
-                                <div class="date-picker__row">
-                                    <input class="date-picker__input" type="date" t-att-value="state.date" t-on-change="onDateChange"/>
-                                    <span class="date-picker__long" t-esc="dateLong"/>
-                                </div>
-                            </div>
-                            <button class="date-picker__nav" type="button" data-day="1" aria-label="Día siguiente" t-on-click="changeDateBy">›</button>
+                    <div class="aqr__controls">
+                        <div class="datenav">
+                            <button class="datenav__arrow" type="button" data-day="-1" aria-label="Día anterior" t-on-click="changeDateBy">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+
+                            <button type="button"
+                                    t-att-class="'datenav__today ' + (isToday ? 'is-active' : '')"
+                                    t-on-click="goToday">
+                                Hoy
+                            </button>
+
+                            <label class="datenav__field">
+                                <span class="datenav__label" t-esc="dateLong"/>
+                                <input class="datenav__input" type="date" t-att-value="state.date" t-on-change="onDateChange" aria-label="Seleccionar fecha"/>
+                            </label>
+
+                            <button class="datenav__arrow" type="button" data-day="1" aria-label="Día siguiente" t-on-click="changeDateBy">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
                         </div>
 
-                        <div class="salas__updated">
-                            <span class="label-mono">Actualizado</span>
-                            <span class="salas__updated-time" t-esc="state.lastUpdatedText"/>
-                        </div>
-
-                        <button class="btn btn--primary" type="button" t-on-click="refreshDashboard">
-                            <span class="btn__dot" aria-hidden="true"/>
+                        <button class="btn btn--secondary" type="button" t-on-click="refreshDashboard" title="Recargar la información">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
                             Actualizar
                         </button>
                     </div>
                 </header>
 
-                <!-- KPIs -->
-                <section class="kpis">
-                    <article class="card kpi kpi--neutral">
-                        <header class="kpi__head">
-                            <span class="label-mono">Salas</span>
-                            <span class="kpi__pip" aria-hidden="true"/>
-                        </header>
-                        <div class="kpi__body">
-                            <span class="kpi__value" t-esc="state.rooms.length"/>
-                            <svg class="kpi__spark" width="44" height="14" viewBox="0 0 44 14" aria-hidden="true">
-                                <path d="M2 8 L10 7 L18 9 L26 6 L34 7 L42 5"/>
+                <!-- Indicadores -->
+                <section class="stats">
+                    <article class="stat">
+                        <span class="stat__icon stat__icon--total" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 21h18"/>
+                                <path d="M5 21V7l7-4 7 4v14"/>
+                                <path d="M9 21v-6h6v6"/>
                             </svg>
+                        </span>
+                        <div class="stat__data">
+                            <span class="stat__value" t-esc="state.rooms.length"/>
+                            <span class="stat__label">Salas registradas</span>
                         </div>
                     </article>
 
-                    <article class="card kpi kpi--available">
-                        <header class="kpi__head">
-                            <span class="label-mono">Disponibles</span>
-                            <span class="kpi__pip" aria-hidden="true"/>
-                        </header>
-                        <div class="kpi__body">
-                            <span class="kpi__value" t-esc="freeRoomsCount"/>
-                            <svg class="kpi__spark" width="44" height="14" viewBox="0 0 44 14" aria-hidden="true">
-                                <path d="M2 10 L10 8 L18 6 L26 5 L34 4 L42 3"/>
+                    <article class="stat">
+                        <span class="stat__icon stat__icon--free" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
+                        </span>
+                        <div class="stat__data">
+                            <span class="stat__value" t-esc="freeRoomsCount"/>
+                            <span class="stat__label">Disponibles hoy</span>
                         </div>
                     </article>
 
-                    <article class="card kpi kpi--occupied">
-                        <header class="kpi__head">
-                            <span class="label-mono">Ocupadas</span>
-                            <span class="kpi__pip" aria-hidden="true"/>
-                        </header>
-                        <div class="kpi__body">
-                            <span class="kpi__value" t-esc="occupiedRoomsCount"/>
-                            <svg class="kpi__spark" width="44" height="14" viewBox="0 0 44 14" aria-hidden="true">
-                                <path d="M2 11 L10 11 L18 10 L26 10 L34 9 L42 9"/>
+                    <article class="stat">
+                        <span class="stat__icon stat__icon--busy" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
                             </svg>
+                        </span>
+                        <div class="stat__data">
+                            <span class="stat__value" t-esc="occupiedRoomsCount"/>
+                            <span class="stat__label">Con reservas</span>
                         </div>
                     </article>
 
-                    <article class="card kpi kpi--pending">
-                        <header class="kpi__head">
-                            <span class="label-mono" t-if="state.canApprove">Pendientes</span>
-                            <span class="label-mono" t-else="">Mis pendientes</span>
-                            <span class="kpi__pip" aria-hidden="true"/>
-                        </header>
-                        <div class="kpi__body">
-                            <span class="kpi__value" t-esc="state.pendingBookings.length"/>
-                            <svg class="kpi__spark" width="44" height="14" viewBox="0 0 44 14" aria-hidden="true">
-                                <path d="M2 11 L10 10 L18 10 L26 11 L34 10 L42 10"/>
+                    <article class="stat">
+                        <span class="stat__icon stat__icon--pending" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
                             </svg>
+                        </span>
+                        <div class="stat__data">
+                            <span class="stat__value" t-esc="state.pendingBookings.length"/>
+                            <span class="stat__label" t-if="state.canApprove">Por autorizar</span>
+                            <span class="stat__label" t-else="">Mis pendientes</span>
                         </div>
                     </article>
                 </section>
 
                 <t t-if="state.loading">
-                    <div class="card loading-card">
-                        <span class="loading-card__dot"/>
+                    <div class="loading">
+                        <span class="loading__spinner" aria-hidden="true"/>
                         <span>Cargando disponibilidad…</span>
                     </div>
                 </t>
 
                 <t t-else="">
-                    <div class="layout">
+                    <div class="aqr__grid">
 
                         <!-- Salas -->
-                        <aside class="card rooms">
-                            <header class="rooms__head">
-                                <h2 class="rooms__title">Salas</h2>
-                                <span class="label-mono" t-esc="state.date"/>
+                        <aside class="panel rooms">
+                            <header class="panel__head">
+                                <h2 class="panel__title">Salas</h2>
+                                <span class="panel__count" t-esc="state.rooms.length"/>
                             </header>
 
                             <ul class="rooms__list" t-if="state.rooms.length">
@@ -125,19 +134,19 @@
                                             t-att-data-room-id="room.id"
                                             t-on-click="selectRoom"
                                             t-att-class="'room ' + (state.selectedRoomId === room.id ? 'is-selected' : '')">
-                                        <div class="room__top">
+                                        <div class="room__row">
                                             <span t-att-class="'room__dot ' + roomDotClass(room)" aria-hidden="true"/>
                                             <div class="room__info">
                                                 <span class="room__name" t-esc="room.name"/>
                                                 <span class="room__meta">
-                                                    <t t-esc="room.capacity || 0"/>p
+                                                    <t t-esc="room.capacity || 0"/> personas
                                                     <t t-if="room.location"> · <t t-esc="room.location"/></t>
                                                 </span>
                                             </div>
                                             <span t-att-class="'pill ' + roomPillClass(room)" t-esc="roomStatusLabel(room)"/>
                                         </div>
 
-                                        <div class="room__strip">
+                                        <div class="room__strip" title="Ocupación de 8am a 8pm">
                                             <span t-foreach="roomStripSlots"
                                                   t-as="hour"
                                                   t-key="hour"
@@ -147,89 +156,100 @@
                                 </li>
                             </ul>
 
-                            <div class="empty empty--card" t-else="">
+                            <div class="empty" t-else="">
                                 <strong>No hay salas registradas</strong>
-                                <span class="empty__hint">Da de alta salas desde Configuración.</span>
+                                <span>Da de alta salas desde Configuración.</span>
                             </div>
                         </aside>
 
                         <!-- Agenda -->
-                        <section class="card agenda">
-                            <header class="agenda__head">
-                                <div class="agenda__title-block">
-                                    <span class="label-mono">Agenda · <span t-esc="dateShort"/></span>
-                                    <h2 class="agenda__title" t-if="selectedRoom" t-esc="selectedRoom.name"/>
-                                    <h2 class="agenda__title" t-else="">Selecciona una sala</h2>
-
-                                    <div class="agenda__meta" t-if="selectedRoom">
-                                        <t t-foreach="selectedRoomMetaParts" t-as="part" t-key="part_index">
-                                            <span class="agenda__sep" t-if="part_index">·</span>
-                                            <span t-esc="part"/>
-                                        </t>
-                                    </div>
+                        <section class="panel agenda">
+                            <header class="panel__head agenda__head">
+                                <div class="agenda__heading">
+                                    <h2 class="panel__title" t-if="selectedRoom" t-esc="selectedRoom.name"/>
+                                    <h2 class="panel__title" t-else="">Agenda</h2>
+                                    <span class="agenda__date" t-esc="dateLong"/>
                                 </div>
 
-                                <div class="seg">
-                                    <button class="seg__btn is-active" type="button">Timeline</button>
-                                    <button class="seg__btn" type="button" t-if="selectedRoom" t-on-click="openRoomCalendar">Calendario</button>
-                                </div>
+                                <button class="btn btn--secondary btn--sm" type="button" t-if="selectedRoom" t-on-click="openRoomCalendar">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    Ver calendario
+                                </button>
                             </header>
 
+                            <div class="agenda__chips" t-if="selectedRoom and selectedRoomMetaParts.length">
+                                <span class="chip" t-foreach="selectedRoomMetaParts" t-as="part" t-key="part_index" t-esc="part"/>
+                            </div>
+
                             <div class="agenda__body">
-                                <div class="empty" t-if="!selectedBookings.length">
-                                    <span class="empty__icon" aria-hidden="true">✓</span>
-                                    <strong>Sin reservas — </strong>
-                                    <span class="empty__hint">da clic en una franja para preparar una solicitud.</span>
-                                </div>
+                                <t t-if="!selectedRoom">
+                                    <div class="empty empty--tall">
+                                        <strong>Selecciona una sala</strong>
+                                        <span>Elige una sala de la lista para ver su agenda del día.</span>
+                                    </div>
+                                </t>
 
-                                <div class="timeline">
-                                    <div class="tl-row" t-foreach="timelineHours" t-as="hour" t-key="hour">
-                                        <span class="tl-row__label" t-esc="formatHour(hour)"/>
+                                <t t-else="">
+                                    <div class="agenda__notice" t-if="!selectedBookings.length">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                            <polyline points="22 4 12 14.01 9 11.01"/>
+                                        </svg>
+                                        Sala libre todo el día. Da clic en cualquier horario para reservarla.
+                                    </div>
 
-                                        <div class="tl-row__slot" t-att-data-hour="hour" t-on-click="onTimelineSlotClick">
-                                            <span class="tl-row__ghost">
-                                                + Reservar <t t-esc="formatHour(hour)"/>
-                                            </span>
+                                    <div class="timeline">
+                                        <div class="timeline__now" t-if="nowLineStyle" t-att-style="nowLineStyle" aria-hidden="true"/>
 
-                                            <article t-foreach="bookingsAtHour(hour)"
-                                                     t-as="booking"
-                                                     t-key="booking.id"
-                                                     t-att-data-booking-id="booking.id"
-                                                     t-att-class="'event ' + bookingStateClass(booking.state)"
-                                                     t-att-style="timelineEventStyle(booking)"
-                                                     t-on-click="openBooking">
-                                                <div class="event__top">
-                                                    <span class="event__title" t-esc="booking.objective"/>
-                                                    <span class="event__time" t-esc="bookingRange(booking)"/>
-                                                </div>
-                                                <span class="event__owner" t-esc="booking.requested_by"/>
-                                            </article>
+                                        <div class="tl-row" t-foreach="timelineHours" t-as="hour" t-key="hour">
+                                            <span class="tl-row__label" t-esc="formatHour(hour)"/>
+
+                                            <div class="tl-row__slot" t-att-data-hour="hour" t-on-click="onTimelineSlotClick">
+                                                <span class="tl-row__ghost">
+                                                    + Reservar a las <t t-esc="formatHour(hour)"/>
+                                                </span>
+
+                                                <article t-foreach="bookingsAtHour(hour)"
+                                                         t-as="booking"
+                                                         t-key="booking.id"
+                                                         t-att-data-booking-id="booking.id"
+                                                         t-att-class="'event ' + bookingStateClass(booking.state)"
+                                                         t-att-style="timelineEventStyle(booking)"
+                                                         t-on-click="openBooking">
+                                                    <div class="event__top">
+                                                        <span class="event__title" t-esc="booking.objective"/>
+                                                        <span class="event__time" t-esc="bookingRange(booking)"/>
+                                                    </div>
+                                                    <span class="event__owner" t-esc="booking.requested_by"/>
+                                                </article>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </t>
                             </div>
                         </section>
 
-                        <!-- Solicitud + pendientes -->
-                        <div class="right-col">
+                        <!-- Columna derecha: solicitud + pendientes -->
+                        <div class="aqr__side">
 
-                            <section class="card form">
-                                <header class="form__head">
-                                    <div>
-                                        <span class="label-mono">Nueva solicitud</span>
-                                        <h2 class="form__title">Reservar sala</h2>
-                                    </div>
-
-                                    <button type="button" class="btn btn--ghost btn--sm" t-on-click="openFullRequestForm">
-                                        Completo
+                            <section class="panel form">
+                                <header class="panel__head">
+                                    <h2 class="panel__title">Nueva reserva</h2>
+                                    <button type="button" class="btn btn--link btn--sm" t-on-click="openFullRequestForm">
+                                        Formulario completo
                                     </button>
                                 </header>
 
                                 <form class="form__body" t-on-submit.prevent="createQuickRequest">
                                     <label class="field">
-                                        <span class="label-mono">Sala</span>
-                                        <select class="input input--select" t-att-value="state.selectedRoomId || ''" t-on-change="onRoomSelect">
-                                            <option value="">Selecciona…</option>
+                                        <span class="field__label">Sala</span>
+                                        <select class="input" t-att-value="state.selectedRoomId || ''" t-on-change="onRoomSelect">
+                                            <option value="">Selecciona una sala…</option>
                                             <option t-foreach="state.rooms"
                                                     t-as="room"
                                                     t-key="room.id"
@@ -242,41 +262,46 @@
 
                                     <div class="field-grid">
                                         <label class="field">
-                                            <span class="label-mono">Inicio</span>
-                                            <input class="input input--mono" type="datetime-local" t-model="state.form.start"/>
+                                            <span class="field__label">Inicio</span>
+                                            <input class="input" type="datetime-local" t-model="state.form.start"/>
                                         </label>
 
                                         <label class="field">
-                                            <span class="label-mono">Fin</span>
-                                            <input class="input input--mono" type="datetime-local" t-model="state.form.stop"/>
+                                            <span class="field__label">Fin</span>
+                                            <input class="input" type="datetime-local" t-model="state.form.stop"/>
                                         </label>
                                     </div>
 
+                                    <div class="durations" role="group" aria-label="Duración rápida">
+                                        <span class="durations__label">Duración:</span>
+                                        <button type="button" class="durations__btn" data-minutes="30" t-on-click="setDuration">30 min</button>
+                                        <button type="button" class="durations__btn" data-minutes="60" t-on-click="setDuration">1 h</button>
+                                        <button type="button" class="durations__btn" data-minutes="90" t-on-click="setDuration">1.5 h</button>
+                                        <button type="button" class="durations__btn" data-minutes="120" t-on-click="setDuration">2 h</button>
+                                    </div>
+
                                     <label class="field">
-                                        <span class="label-mono">Objetivo</span>
+                                        <span class="field__label">Objetivo <em class="field__required">*</em></span>
                                         <input class="input js-aq-objective"
                                                type="text"
                                                t-model="state.form.objective"
-                                               placeholder="Ej. Revisión semanal"/>
+                                               placeholder="Ej. Revisión semanal de proyecto"/>
                                     </label>
 
                                     <label class="field">
-                                        <span class="field__label-row">
-                                            <span class="label-mono">Agenda</span>
-                                            <span class="field__hint">Opcional</span>
-                                        </span>
+                                        <span class="field__label">Agenda <span class="field__optional">opcional</span></span>
                                         <textarea class="input input--textarea"
                                                   t-model="state.form.agenda"
                                                   rows="3"
-                                                  placeholder="1. Avances&#10;2. Bloqueos&#10;3. Acuerdos esperados"/>
+                                                  placeholder="1. Avances&#10;2. Bloqueos&#10;3. Acuerdos"/>
                                     </label>
 
-                                    <p class="aq-alert" t-if="hasInvalidSlot">
+                                    <p class="alert alert--error" t-if="hasInvalidSlot">
                                         La hora de fin debe ser mayor que la de inicio.
                                     </p>
 
-                                    <div class="aq-alert aq-alert-warn" t-if="quickConflicts.length">
-                                        <strong>Horario ocupado</strong>
+                                    <div class="alert alert--warn" t-if="quickConflicts.length">
+                                        <strong>El horario cruza con:</strong>
                                         <ul>
                                             <li t-foreach="quickConflicts" t-as="booking" t-key="booking.id">
                                                 <t t-esc="bookingRange(booking)"/> · <t t-esc="booking.objective"/>
@@ -284,69 +309,54 @@
                                         </ul>
                                     </div>
 
-                                    <footer class="form__foot">
-                                        <span class="hint">
-                                            <span class="hint__i" aria-hidden="true">i</span>
-                                            Sujeto a autorización
-                                        </span>
+                                    <button class="btn btn--primary btn--block"
+                                            type="submit"
+                                            t-att-disabled="!state.selectedRoomId || !hasObjective || hasInvalidSlot || quickConflicts.length">
+                                        Enviar solicitud
+                                    </button>
 
-                                        <button class="btn btn--primary"
-                                                type="submit"
-                                                t-att-disabled="!state.selectedRoomId || !hasObjective || hasInvalidSlot || quickConflicts.length">
-                                            Enviar
-                                            <span class="btn__kbd">↵</span>
-                                        </button>
-                                    </footer>
+                                    <p class="form__hint">La reserva queda sujeta a autorización.</p>
                                 </form>
                             </section>
 
-                            <section class="card pending">
-                                <header class="pending__head">
-                                    <div>
-                                        <span class="label-mono" t-if="state.canApprove">Pendientes</span>
-                                        <span class="label-mono" t-else="">Mis pendientes</span>
-                                        <h2 class="pending__title">
-                                            <span t-esc="state.pendingBookings.length"/>
-                                            <span t-if="state.pendingBookings.length === 1"> solicitud</span>
-                                            <span t-else=""> solicitudes</span>
-                                        </h2>
-                                    </div>
-
-                                    <span class="pill pill--pending" t-if="state.pendingBookings.length">
-                                        <t t-esc="state.pendingBookings.length"/> en revisión
-                                    </span>
+                            <section class="panel pending">
+                                <header class="panel__head">
+                                    <h2 class="panel__title" t-if="state.canApprove">Por autorizar</h2>
+                                    <h2 class="panel__title" t-else="">Mis solicitudes</h2>
+                                    <span t-att-class="'panel__count ' + (state.pendingBookings.length ? 'is-alert' : '')"
+                                          t-esc="state.pendingBookings.length"/>
                                 </header>
 
                                 <div class="pending__body" t-if="state.pendingBookings.length">
-                                    <article class="pending-item"
+                                    <article class="ticket"
                                              t-foreach="state.pendingBookings"
                                              t-as="booking"
                                              t-key="booking.id">
-                                        <header class="pending-item__head">
-                                            <div class="pending-item__info">
-                                                <span class="pending-item__title" t-esc="booking.objective"/>
-                                                <span class="pending-item__meta">
+                                        <div class="ticket__head">
+                                            <div class="ticket__info">
+                                                <span class="ticket__title" t-esc="booking.objective"/>
+                                                <span class="ticket__meta">
                                                     <t t-esc="booking.room_name"/> · <t t-esc="bookingRange(booking)"/>
                                                 </span>
                                             </div>
                                             <span t-att-class="'pill ' + bookingPillClass(booking.state)" t-esc="booking.state_label"/>
-                                        </header>
+                                        </div>
 
-                                        <footer class="pending-item__foot">
-                                            <span class="pending-item__owner">
+                                        <div class="ticket__foot">
+                                            <span class="ticket__owner">
                                                 <span class="avatar" t-esc="pendingInitials(booking)"/>
-                                                <span class="pending-item__name" t-esc="booking.requested_by"/>
+                                                <span class="ticket__name" t-esc="booking.requested_by"/>
                                             </span>
 
-                                            <div class="pending-item__actions">
-                                                <button class="btn btn--ghost btn--sm"
+                                            <div class="ticket__actions">
+                                                <button class="btn btn--secondary btn--sm"
                                                         type="button"
                                                         t-att-data-booking-id="booking.id"
                                                         t-on-click="openBooking">
                                                     Abrir
                                                 </button>
 
-                                                <button class="btn btn--primary btn--sm"
+                                                <button class="btn btn--approve btn--sm"
                                                         type="button"
                                                         t-if="state.canApprove"
                                                         t-att-data-booking-id="booking.id"
@@ -362,13 +372,13 @@
                                                     Rechazar
                                                 </button>
                                             </div>
-                                        </footer>
+                                        </div>
                                     </article>
                                 </div>
 
-                                <div class="empty empty--card" t-else="">
+                                <div class="empty" t-else="">
                                     <strong>Sin solicitudes pendientes</strong>
-                                    <span class="empty__hint">Cuando alguien envíe una reserva aparecerá aquí.</span>
+                                    <span>Cuando alguien envíe una reserva aparecerá aquí.</span>
                                 </div>
                             </section>
 
@@ -376,8 +386,8 @@
                     </div>
                 </t>
 
-                <footer class="salas__foot">
-                    <span>v0.6 · aq_meeting_rooms</span>
+                <footer class="aqr__foot">
+                    <span>aq_meeting_rooms · Actualizado <t t-esc="state.lastUpdatedText"/></span>
                     <span>Las solicitudes pasan por aprobación de Operaciones.</span>
                 </footer>
             </div>
