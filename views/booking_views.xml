@@ -44,6 +44,7 @@
                     <button name="action_reject" type="object" string="Rechazar" class="btn-secondary" groups="aq_meeting_rooms.group_meeting_room_approver" invisible="state != 'pending'"/>
                     <button name="action_cancel" type="object" string="Cancelar" class="btn-secondary" invisible="state in ['cancelled', 'done']"/>
                     <button name="action_open_minute" type="object" string="Abrir sesión / minuta" class="btn-primary" invisible="state not in ['approved', 'done']"/>
+                    <button name="action_send_invitation" type="object" string="Reenviar invitación" class="btn-secondary" invisible="state not in ['approved', 'done']"/>
                     <button name="action_done" type="object" string="Finalizar reunión" class="btn-secondary" invisible="state != 'approved'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,pending,approved,done"/>
                 </header>
@@ -76,6 +77,8 @@
                             <field name="requested_by_id" readonly="state != 'draft'"/>
                             <field name="approver_id" readonly="1"/>
                             <field name="decision_date" readonly="1"/>
+                            <field name="invitation_sent" readonly="1"/>
+                            <field name="invitation_date" readonly="1" invisible="not invitation_sent"/>
                             <field name="company_id" groups="base.group_multi_company" readonly="1"/>
                         </group>
                     </group>

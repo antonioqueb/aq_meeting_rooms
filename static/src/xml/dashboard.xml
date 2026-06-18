@@ -309,6 +309,37 @@
                                                   placeholder="1. Avances&#10;2. Bloqueos&#10;3. Acuerdos"/>
                                     </label>
 
+                                    <div class="field participants">
+                                        <span class="field__label">Invitados <span class="field__optional">opcional</span></span>
+                                        <div class="participants__chips" t-if="state.form.participants.length">
+                                            <span class="chip" t-foreach="state.form.participants" t-as="participant" t-key="participant.id">
+                                                <t t-esc="participant.name"/>
+                                                <button class="chip__remove"
+                                                        type="button"
+                                                        t-att-data-user-id="participant.id"
+                                                        t-on-click="removeParticipant"
+                                                        title="Quitar invitado">×</button>
+                                            </span>
+                                        </div>
+                                        <div class="participants__search">
+                                            <input class="input"
+                                                   type="text"
+                                                   t-att-value="state.participantQuery"
+                                                   t-on-input="onParticipantSearch"
+                                                   placeholder="Busca y agrega usuarios internos…"/>
+                                            <ul class="participants__menu" t-if="filteredParticipants.length">
+                                                <li t-foreach="filteredParticipants" t-as="user" t-key="user.id">
+                                                    <button class="participants__option"
+                                                            type="button"
+                                                            t-att-data-user-id="user.id"
+                                                            t-on-click="addParticipant"
+                                                            t-esc="user.name"/>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <span class="participants__hint">El solicitante se agrega automáticamente.</span>
+                                    </div>
+
                                     <div class="alert alert--warn" t-if="quickConflicts.length">
                                         <strong>El horario cruza con:</strong>
                                         <ul>

@@ -119,6 +119,11 @@ class AqMeetingRoom(models.Model):
         ]
         bookings = Booking.search(booking_domain, order='start asc, room_id asc')
 
+        internal_users = self.env['res.users'].sudo().search(
+            [('share', '=', False), ('active', '=', True)],
+            order='name',
+        )
+
         can_approve = self.env.user.has_group('aq_meeting_rooms.group_meeting_room_approver')
         pending_domain = [('state', '=', 'pending')]
         if not can_approve:
@@ -133,6 +138,10 @@ class AqMeetingRoom(models.Model):
 
         return {
             'can_approve': can_approve,
+            'users': [
+                {'id': user.id, 'name': user.display_name, 'partner_id': user.partner_id.id}
+                for user in internal_users if user.partner_id
+            ],
             'rooms': [room._dashboard_room_payload() for room in rooms],
             'bookings': [booking._dashboard_booking_payload() for booking in bookings],
             'pending_bookings': [booking._dashboard_booking_payload() for booking in pending_bookings],

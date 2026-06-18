@@ -29,15 +29,18 @@ class AqMeetingRoomsDashboard extends Component {
             bookings: [],
             pendingBookings: [],
             myOpenBookings: [],
+            users: [],
             selectedRoomId: false,
             canApprove: false,
             date: today,
             lastUpdatedText: 'sin actualizar',
+            participantQuery: '',
             form: {
                 startTime: this._defaultStartTime(),
                 duration: 60,
                 objective: '',
                 agenda: '',
+                participants: [],
             },
         });
 
@@ -220,6 +223,7 @@ class AqMeetingRoomsDashboard extends Component {
             this.state.bookings = data.bookings || [];
             this.state.pendingBookings = data.pending_bookings || [];
             this.state.myOpenBookings = data.my_open_bookings || [];
+            this.state.users = data.users || [];
             this.state.canApprove = Boolean(data.can_approve);
             this.state.lastUpdatedText = 'hace unos segundos';
 
@@ -480,6 +484,7 @@ class AqMeetingRoomsDashboard extends Component {
             stop: this.formStop,
             objective: this.state.form.objective.trim(),
             agenda: this.state.form.agenda,
+            participant_user_ids: this.state.form.participants.map((user) => user.id),
         };
 
         try {
@@ -489,6 +494,8 @@ class AqMeetingRoomsDashboard extends Component {
 
             this.state.form.objective = '';
             this.state.form.agenda = '';
+            this.state.form.participants = [];
+            this.state.participantQuery = '';
 
             if (newBooking && newBooking.start) {
                 this.state.date = this._dateFromDatetime(newBooking.start) || this.state.date;
@@ -498,6 +505,40 @@ class AqMeetingRoomsDashboard extends Component {
         } catch (error) {
             this.notification.add(this._errorMessage(error, 'No fue posible crear la solicitud.'), { type: 'danger' });
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Invitados (usuarios internos)
+    // ---------------------------------------------------------------------
+
+    get filteredParticipants() {
+        const query = (this.state.participantQuery || '').trim().toLowerCase();
+        if (!query) {
+            return [];
+        }
+        const selectedIds = this.state.form.participants.map((user) => user.id);
+        return this.state.users
+            .filter((user) => !selectedIds.includes(user.id))
+            .filter((user) => (user.name || '').toLowerCase().includes(query))
+            .slice(0, 8);
+    }
+
+    onParticipantSearch(ev) {
+        this.state.participantQuery = ev.currentTarget.value || '';
+    }
+
+    addParticipant(ev) {
+        const userId = Number(ev.currentTarget.dataset.userId);
+        const user = this.state.users.find((candidate) => candidate.id === userId);
+        if (user && !this.state.form.participants.some((selected) => selected.id === userId)) {
+            this.state.form.participants.push(user);
+        }
+        this.state.participantQuery = '';
+    }
+
+    removeParticipant(ev) {
+        const userId = Number(ev.currentTarget.dataset.userId);
+        this.state.form.participants = this.state.form.participants.filter((user) => user.id !== userId);
     }
 
     openFullRequestForm() {
@@ -514,6 +555,7 @@ class AqMeetingRoomsDashboard extends Component {
                 default_stop: this.formStop,
                 default_objective: this.state.form.objective || false,
                 default_agenda: this.state.form.agenda || false,
+                default_participant_partner_ids: this.state.form.participants.map((user) => user.partner_id),
             },
         });
     }

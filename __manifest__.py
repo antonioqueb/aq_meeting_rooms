@@ -1,6 +1,6 @@
 {
     'name': 'Alphaqueb Meeting Rooms',
-    'version': '18.0.1.3.0',
+    'version': '18.0.1.5.0',
     'summary': 'Reservación de salas de juntas, aprobaciones y minutas corporativas',
     'description': '''
 Gestión integral de salas de juntas para Odoo 18.
@@ -12,6 +12,9 @@ Incluye:
 - Dashboard OWL moderno para visualizar salas, disponibilidad y solicitudes pendientes.
 - Captura manual de minutas corporativas con estructura jerárquica.
 - Reporte PDF de minuta y envío por correo a participantes.
+- Aviso por correo a autorizadores y administradores cuando llega una nueva solicitud.
+- Invitación formal por correo (con archivo .ics de calendario) a todos los participantes al autorizar la sesión.
+- Selección de invitados (usuarios internos) desde la solicitud rápida del dashboard.
     ''',
     'category': 'Productivity',
     'author': 'Alphaqueb Consulting S.A.S.',
