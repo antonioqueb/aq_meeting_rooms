@@ -1,11 +1,17 @@
 import base64
 import logging
 
+import pytz
+
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import format_datetime, html2plaintext, html_escape
 
 _logger = logging.getLogger(__name__)
+
+# Todas las horas del módulo se manejan en hora de Monterrey, sin importar
+# la zona horaria configurada por cada usuario.
+BOOKING_TZ = 'America/Monterrey'
 
 
 class AqMeetingRoomBooking(models.Model):
@@ -64,6 +70,30 @@ class AqMeetingRoomBooking(models.Model):
     can_approve = fields.Boolean(string='Puede autorizar', compute='_compute_can_approve')
     invitation_sent = fields.Boolean(string='Invitación enviada', readonly=True, copy=False, tracking=True)
     invitation_date = fields.Datetime(string='Fecha de invitación', readonly=True, copy=False)
+
+    # ------------------------------------------------------------------
+    # Zona horaria fija (Monterrey)
+    # ------------------------------------------------------------------
+    @api.model
+    def _monterrey_to_utc(self, dt):
+        """Interpreta un datetime naive como hora de Monterrey y regresa naive UTC."""
+        if not dt:
+            return dt
+        return pytz.timezone(BOOKING_TZ).localize(dt).astimezone(pytz.utc).replace(tzinfo=None)
+
+    @api.model
+    def _utc_to_monterrey(self, dt):
+        """Convierte un datetime naive UTC (almacenado) a hora de Monterrey naive."""
+        if not dt:
+            return dt
+        return pytz.utc.localize(dt).astimezone(pytz.timezone(BOOKING_TZ)).replace(tzinfo=None)
+
+    @api.model
+    def _format_monterrey(self, dt):
+        """Formatea un datetime UTC almacenado en hora de Monterrey para mensajes/correos."""
+        if not dt:
+            return ''
+        return format_datetime(self.env, dt, tz=BOOKING_TZ)
 
     @api.depends('start', 'stop')
     def _compute_duration(self):
@@ -164,8 +194,8 @@ class AqMeetingRoomBooking(models.Model):
             raise ValidationError(message % {
                 'room': self.room_id.display_name,
                 'booking': conflict.display_name,
-                'start': fields.Datetime.to_string(conflict.start),
-                'stop': fields.Datetime.to_string(conflict.stop),
+                'start': self._format_monterrey(conflict.start),
+                'stop': self._format_monterrey(conflict.stop),
             })
 
     def _ensure_no_approved_conflict(self):
@@ -185,8 +215,8 @@ class AqMeetingRoomBooking(models.Model):
             ) % {
                 'room': self.room_id.display_name,
                 'booking': conflict.display_name,
-                'start': fields.Datetime.to_string(conflict.start),
-                'stop': fields.Datetime.to_string(conflict.stop),
+                'start': self._format_monterrey(conflict.start),
+                'stop': self._format_monterrey(conflict.stop),
             })
 
     def _check_authorizer(self):
@@ -331,8 +361,8 @@ class AqMeetingRoomBooking(models.Model):
                 <li><strong>Objetivo:</strong> %s</li>
                 <li><strong>Sala:</strong> %s</li>
                 <li><strong>Ubicación:</strong> %s</li>
-                <li><strong>Inicio:</strong> %s</li>
-                <li><strong>Fin:</strong> %s</li>
+                <li><strong>Inicio:</strong> %s (hora de Monterrey)</li>
+                <li><strong>Fin:</strong> %s (hora de Monterrey)</li>
                 <li><strong>Duración:</strong> %s h</li>
                 <li><strong>Solicitante:</strong> %s</li>
                 <li><strong>Participantes:</strong> %s</li>
@@ -342,8 +372,8 @@ class AqMeetingRoomBooking(models.Model):
             html_escape(self.objective or ''),
             html_escape(self.room_id.display_name or ''),
             html_escape(self.room_id.location or _('No especificada')),
-            html_escape(format_datetime(self.env, self.start) if self.start else ''),
-            html_escape(format_datetime(self.env, self.stop) if self.stop else ''),
+            html_escape(self._format_monterrey(self.start)),
+            html_escape(self._format_monterrey(self.stop)),
             html_escape('%.2f' % (self.duration or 0.0)),
             html_escape(self.requested_by_id.display_name or ''),
             html_escape(participants),
@@ -421,8 +451,12 @@ class AqMeetingRoomBooking(models.Model):
         def _ics_escape(value):
             return (value or '').replace('\\', '\\\\').replace(';', '\\;').replace(',', '\\,').replace('\n', '\\n')
 
-        def _ics_dt(value):
+        def _ics_dt_utc(value):
             return value.strftime('%Y%m%dT%H%M%SZ')
+
+        def _ics_dt_local(value):
+            # Hora de pared en Monterrey; se declara con TZID en el VEVENT.
+            return self._utc_to_monterrey(value).strftime('%Y%m%dT%H%M%S')
 
         description_parts = [self.objective or '']
         if self.agenda:
@@ -438,11 +472,21 @@ class AqMeetingRoomBooking(models.Model):
             'PRODID:-//Alphaqueb Consulting//Meeting Rooms//ES',
             'CALSCALE:GREGORIAN',
             'METHOD:REQUEST',
+            # Monterrey no aplica horario de verano desde 2022: UTC-6 fijo.
+            'BEGIN:VTIMEZONE',
+            'TZID:%s' % BOOKING_TZ,
+            'BEGIN:STANDARD',
+            'DTSTART:19700101T000000',
+            'TZOFFSETFROM:-0600',
+            'TZOFFSETTO:-0600',
+            'TZNAME:CST',
+            'END:STANDARD',
+            'END:VTIMEZONE',
             'BEGIN:VEVENT',
             'UID:aq-meeting-booking-%s@%s' % (self.id, self.env.cr.dbname),
-            'DTSTAMP:%s' % _ics_dt(fields.Datetime.now()),
-            'DTSTART:%s' % _ics_dt(self.start),
-            'DTEND:%s' % _ics_dt(self.stop),
+            'DTSTAMP:%s' % _ics_dt_utc(fields.Datetime.now()),
+            'DTSTART;TZID=%s:%s' % (BOOKING_TZ, _ics_dt_local(self.start)),
+            'DTEND;TZID=%s:%s' % (BOOKING_TZ, _ics_dt_local(self.stop)),
             'SUMMARY:%s' % _ics_escape(self.objective or self.name),
             'DESCRIPTION:%s' % _ics_escape(description),
             'LOCATION:%s' % _ics_escape(self.room_id.location or self.room_id.display_name or ''),
@@ -480,8 +524,9 @@ class AqMeetingRoomBooking(models.Model):
         if not room or not room.active:
             raise UserError(_('La sala seleccionada no existe o está inactiva.'))
 
-        start_dt = fields.Datetime.to_datetime(start)
-        stop_dt = fields.Datetime.to_datetime(stop)
+        # El dashboard captura hora de pared de Monterrey; se convierte a UTC para almacenar.
+        start_dt = self._monterrey_to_utc(fields.Datetime.to_datetime(start))
+        stop_dt = self._monterrey_to_utc(fields.Datetime.to_datetime(stop))
         if start_dt >= stop_dt:
             raise UserError(_('La fecha de fin debe ser mayor que la fecha de inicio.'))
 
@@ -498,8 +543,8 @@ class AqMeetingRoomBooking(models.Model):
                 'room': room.display_name,
                 'state': dict(conflict._fields['state'].selection).get(conflict.state, conflict.state).lower(),
                 'booking': conflict.display_name,
-                'start': fields.Datetime.to_string(conflict.start),
-                'stop': fields.Datetime.to_string(conflict.stop),
+                'start': self._format_monterrey(conflict.start),
+                'stop': self._format_monterrey(conflict.stop),
             })
 
         partner_ids = self._resolve_participant_partner_ids(vals.get('participant_user_ids'))
@@ -541,8 +586,8 @@ class AqMeetingRoomBooking(models.Model):
             'room_id': self.room_id.id,
             'room_name': self.room_id.display_name,
             'requested_by': self.requested_by_id.display_name,
-            'start': fields.Datetime.to_string(self.start) if self.start else '',
-            'stop': fields.Datetime.to_string(self.stop) if self.stop else '',
+            'start': fields.Datetime.to_string(self._utc_to_monterrey(self.start)) if self.start else '',
+            'stop': fields.Datetime.to_string(self._utc_to_monterrey(self.stop)) if self.stop else '',
             'duration': round(self.duration or 0.0, 2),
             'objective': self.objective or '',
             'agenda': self.agenda or '',

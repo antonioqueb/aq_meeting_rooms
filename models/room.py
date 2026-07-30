@@ -99,14 +99,15 @@ class AqMeetingRoom(models.Model):
         request valid meeting slots without needing full administrative permissions.
         """
         Booking = self.env['aq.meeting.room.booking']
+        # El dashboard trabaja en hora de Monterrey; el rango se convierte a UTC para buscar.
         if date_from:
-            date_from_dt = fields.Datetime.to_datetime(date_from)
+            date_from_dt = Booking._monterrey_to_utc(fields.Datetime.to_datetime(date_from))
         else:
             today = fields.Date.context_today(self)
-            date_from_dt = datetime.combine(today, time.min)
+            date_from_dt = Booking._monterrey_to_utc(datetime.combine(today, time.min))
 
         if date_to:
-            date_to_dt = fields.Datetime.to_datetime(date_to)
+            date_to_dt = Booking._monterrey_to_utc(fields.Datetime.to_datetime(date_to))
         else:
             date_to_dt = fields.Datetime.add(date_from_dt, days=1)
 
@@ -146,9 +147,9 @@ class AqMeetingRoom(models.Model):
             'bookings': [booking._dashboard_booking_payload() for booking in bookings],
             'pending_bookings': [booking._dashboard_booking_payload() for booking in pending_bookings],
             'my_open_bookings': [booking._dashboard_booking_payload() for booking in my_open_bookings],
-            'date_from': fields.Datetime.to_string(date_from_dt),
-            'date_to': fields.Datetime.to_string(date_to_dt),
-            'server_now': fields.Datetime.to_string(fields.Datetime.now()),
+            'date_from': fields.Datetime.to_string(Booking._utc_to_monterrey(date_from_dt)),
+            'date_to': fields.Datetime.to_string(Booking._utc_to_monterrey(date_to_dt)),
+            'server_now': fields.Datetime.to_string(Booking._utc_to_monterrey(fields.Datetime.now())),
         }
 
     def _dashboard_room_payload(self):
@@ -169,7 +170,11 @@ class AqMeetingRoom(models.Model):
             'current_booking_objective': self.current_booking_id.objective if self.current_booking_id else '',
             'next_booking_name': self.next_booking_id.name if self.next_booking_id else '',
             'next_booking_objective': self.next_booking_id.objective if self.next_booking_id else '',
-            'next_booking_start': fields.Datetime.to_string(self.next_booking_id.start) if self.next_booking_id else '',
-            'next_booking_stop': fields.Datetime.to_string(self.next_booking_id.stop) if self.next_booking_id else '',
+            'next_booking_start': fields.Datetime.to_string(
+                self.env['aq.meeting.room.booking']._utc_to_monterrey(self.next_booking_id.start)
+            ) if self.next_booking_id and self.next_booking_id.start else '',
+            'next_booking_stop': fields.Datetime.to_string(
+                self.env['aq.meeting.room.booking']._utc_to_monterrey(self.next_booking_id.stop)
+            ) if self.next_booking_id and self.next_booking_id.stop else '',
             'image_url': '/web/image/aq.meeting.room/%s/image_1920' % self.id if self.image_1920 else '',
         }

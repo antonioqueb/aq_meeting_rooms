@@ -8,6 +8,11 @@ const FIRST_HOUR = 8;
 const LAST_HOUR = 20;
 const WINDOW_MINUTES = (LAST_HOUR - FIRST_HOUR) * 60;
 
+// Todo el tablero opera en hora de Monterrey (UTC-6 fijo, sin horario de verano),
+// sin importar la zona horaria del navegador o del usuario.
+const DASHBOARD_TZ = 'America/Monterrey';
+const MONTERREY_UTC_OFFSET_HOURS = 6;
+
 const DURATION_OPTIONS = [
     { minutes: 30, label: '30 min' },
     { minutes: 60, label: '1 h' },
@@ -55,9 +60,33 @@ class AqMeetingRoomsDashboard extends Component {
         return String(value).padStart(2, '0');
     }
 
+    _nowInMonterrey() {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: DASHBOARD_TZ,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+        }).formatToParts(new Date());
+        const get = (type) => (parts.find((part) => part.type === type) || {}).value || '00';
+        return {
+            date: `${get('year')}-${get('month')}-${get('day')}`,
+            hour: Number(get('hour')),
+            minute: Number(get('minute')),
+        };
+    }
+
+    _monterreyToUtcString(value) {
+        // "YYYY-MM-DD HH:MM:SS" en hora de Monterrey -> misma cadena en UTC.
+        const utc = new Date(`${value.replace(' ', 'T')}Z`);
+        utc.setUTCHours(utc.getUTCHours() + MONTERREY_UTC_OFFSET_HOURS);
+        return `${utc.getUTCFullYear()}-${this._pad(utc.getUTCMonth() + 1)}-${this._pad(utc.getUTCDate())} ${this._pad(utc.getUTCHours())}:${this._pad(utc.getUTCMinutes())}:00`;
+    }
+
     _today() {
-        const d = new Date();
-        return `${d.getFullYear()}-${this._pad(d.getMonth() + 1)}-${this._pad(d.getDate())}`;
+        return this._nowInMonterrey().date;
     }
 
     _dateObject(dateValue) {
@@ -68,8 +97,8 @@ class AqMeetingRoomsDashboard extends Component {
     }
 
     _defaultStartTime() {
-        const now = new Date();
-        let minutes = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30;
+        const now = this._nowInMonterrey();
+        let minutes = Math.ceil((now.hour * 60 + now.minute) / 30) * 30;
         minutes = Math.max(FIRST_HOUR * 60, Math.min(minutes, (LAST_HOUR - 1) * 60));
         return `${this._pad(Math.floor(minutes / 60))}:${this._pad(minutes % 60)}`;
     }
@@ -169,8 +198,8 @@ class AqMeetingRoomsDashboard extends Component {
         if (!this.isToday) {
             return '';
         }
-        const now = new Date();
-        const minutes = now.getHours() * 60 + now.getMinutes();
+        const now = this._nowInMonterrey();
+        const minutes = now.hour * 60 + now.minute;
         const lowerBound = FIRST_HOUR * 60;
         const upperBound = LAST_HOUR * 60;
         if (minutes < lowerBound || minutes > upperBound) {
@@ -551,8 +580,8 @@ class AqMeetingRoomsDashboard extends Component {
             target: 'current',
             context: {
                 default_room_id: this.state.selectedRoomId || false,
-                default_start: this.formStart,
-                default_stop: this.formStop,
+                default_start: this._monterreyToUtcString(this.formStart),
+                default_stop: this._monterreyToUtcString(this.formStop),
                 default_objective: this.state.form.objective || false,
                 default_agenda: this.state.form.agenda || false,
                 default_participant_partner_ids: this.state.form.participants.map((user) => user.partner_id),
@@ -586,8 +615,8 @@ class AqMeetingRoomsDashboard extends Component {
             domain: [['room_id', '=', this.state.selectedRoomId]],
             context: {
                 default_room_id: this.state.selectedRoomId,
-                default_start: `${this.state.date} 09:00:00`,
-                default_stop: `${this.state.date} 10:00:00`,
+                default_start: this._monterreyToUtcString(`${this.state.date} 09:00:00`),
+                default_stop: this._monterreyToUtcString(`${this.state.date} 10:00:00`),
             },
         });
     }
